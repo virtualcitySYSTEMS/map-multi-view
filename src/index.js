@@ -1,20 +1,70 @@
+import { ObliqueMap, ObliqueViewDirection } from '@vcmap/core';
 import { name, version, mapVersion } from '../package.json';
+import createMultiViewManager from './multiViewManager.js';
+import addMultiViewButton from './util/toolboxHelper.js';
 
 /**
- * @typedef {Object} PluginState
- * @property {any} prop
+ * @typedef {Object} AbstractMultiView
+ * @property {string} map The map type.
+ */
+
+/**
+ * @typedef {Object} ObliqueMultiViewProps
+ * @property {string?} collection The collection that should be displayed in this view. If null, the oblique collection of the current oblique map is displayed.
+ * @property {import("@vcmap/core").ObliqueViewDirection} direction The direction of the oblique collection.
+ * @typedef {AbstractMultiView & ObliqueMultiViewProps} ObliqueMultiView The properties to define a oblique view for the multi view.
+ */
+
+/**
+ * @typedef {Object} MultiViewConfig The multiView internal config, to lay the foundation for later config/state. In version 2 this is more like a state since it can be modified during runtime.
+ * @property {Array<ObliqueMultiView>} views The definition of the different views.
+ */
+
+/** @type {MultiViewConfig} */
+export const viewConfig = {
+  views: [
+    {
+      map: 'ObliqueMap',
+      collection: null,
+      direction: ObliqueViewDirection.NORTH,
+    },
+    {
+      map: 'ObliqueMap',
+      collection: null,
+      direction: ObliqueViewDirection.EAST,
+    },
+    {
+      map: 'ObliqueMap',
+      collection: null,
+      direction: ObliqueViewDirection.SOUTH,
+    },
+    {
+      map: 'ObliqueMap',
+      collection: null,
+      direction: ObliqueViewDirection.WEST,
+    },
+  ],
+};
+
+/**
+ * @typedef {Object} MultiViewState
+ * @property {boolean} active Whether the plugin is active
  */
 
 /**
  * Implementation of VcsPlugin interface. This function should not throw! Put exceptions in initialize instead.
  * @param {T} config - the configuration of this plugin instance, passed in from the app.
  * @param {string} baseUrl - the absolute URL from which the plugin was loaded (without filename, ending on /)
- * @returns {import("@vcmap/ui/src/vcsUiApp").VcsPlugin<T, PluginState>}
+ * @returns {import("@vcmap/ui/src/vcsUiApp").VcsPlugin<T, MultiViewState>}
  * @template {Object} T
  */
+// eslint-disable-next-line no-unused-vars
 export default function plugin(config, baseUrl) {
-  // eslint-disable-next-line no-console
-  console.log(config, baseUrl);
+  /** @type {import("./multiViewManager").MultiViewManager} */
+  let multiViewManager;
+  let destroyButton = () => {};
+  let mapAddedListener = () => {};
+
   return {
     get name() {
       return name;
@@ -25,56 +75,61 @@ export default function plugin(config, baseUrl) {
     get mapVersion() {
       return mapVersion;
     },
+    get multiView() {
+      return multiViewManager;
+    },
+    get active() {
+      return multiViewManager?.active;
+    },
+    async activate() {
+      await multiViewManager?.activate();
+    },
+    deactivate() {
+      multiViewManager?.deactivate();
+    },
+    get stateChanged() {
+      return multiViewManager.stateChanged;
+    },
     /**
      * @param {import("@vcmap/ui").VcsUiApp} vcsUiApp
-     * @param {PluginState=} state
+     * @param {MultiViewState=} state
      * @returns {Promise<void>}
      */
     initialize: async (vcsUiApp, state) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Called before loading the rest of the current context. Passed in the containing Vcs UI App ',
-        vcsUiApp,
-        state,
-      );
-    },
-    /**
-     * @param {import("@vcmap/ui").VcsUiApp} vcsUiApp
-     * @returns {Promise<void>}
-     */
-    onVcsAppMounted: async (vcsUiApp) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Called when the root UI component is mounted and managers are ready to accept components',
-        vcsUiApp,
-      );
+      multiViewManager = createMultiViewManager(vcsUiApp, viewConfig);
+      destroyButton = addMultiViewButton(vcsUiApp, multiViewManager, name);
+      mapAddedListener = vcsUiApp.maps.added.addEventListener((map) => {
+        if (map instanceof ObliqueMap) {
+          map.initialize();
+        }
+      });
+      // needs to be initialized, otherwise it might not contain a collection.
+      await vcsUiApp.maps.getByType(ObliqueMap.className)[0]?.initialize();
+      if (state?.active) {
+        await multiViewManager.activate();
+      }
     },
     /**
      * should return all default values of the configuration
-     * @returns {T}
+     * @returns {Object}
      */
     getDefaultOptions() {
       return {};
     },
     /**
      * should return the plugin's serialization excluding all default values
-     * @returns {T}
+     * @returns {Object}
      */
     toJSON() {
-      // eslint-disable-next-line no-console
-      console.log('Called when serializing this plugin instance');
       return {};
     },
     /**
      * should return the plugins state
-     * @param {boolean} forUrl
-     * @returns {PluginState}
+     * @returns {MultiViewState}
      */
-    getState(forUrl) {
-      // eslint-disable-next-line no-console
-      console.log('Called when collecting state, e.g. for create link', forUrl);
+    getState() {
       return {
-        prop: '*',
+        active: multiViewManager?.active,
       };
     },
     /**
@@ -84,9 +139,32 @@ export default function plugin(config, baseUrl) {
     getConfigEditors() {
       return [];
     },
+    i18n: {
+      en: {
+        multiView: {
+          activate: 'Enable Multi View',
+          deactivate: 'Disable Multi View',
+          north: 'north',
+          east: 'east',
+          south: 'south',
+          west: 'west',
+        },
+      },
+      de: {
+        multiView: {
+          activate: 'Mehrfachansicht aktivieren',
+          deactivate: 'Mehrfachansicht deaktivieren',
+          north: 'Norden',
+          east: 'Osten',
+          south: 'Süden',
+          west: 'Westen',
+        },
+      },
+    },
     destroy() {
-      // eslint-disable-next-line no-console
-      console.log('hook to cleanup');
+      destroyButton();
+      multiViewManager.destroy();
+      mapAddedListener();
     },
   };
 }

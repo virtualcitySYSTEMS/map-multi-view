@@ -1,6 +1,6 @@
 {
-  "name": "multi-view",
-  "version": "0.1.0",
+  "name": "@vcmap/multi-view",
+  "version": "1.0.0-rc.0",
   "description": "Renders next to the map multiple alternative views for the same viewpoint.",
   "type": "module",
   "main": "src/index.js",
@@ -63,5 +63,5 @@
     "resize-observer-polyfill": "^1.5.1",
     "vitest": "^0.34.5"
   },
-  "mapVersion": "^5.0"
+  "mapVersion": "^5.1"
 }
