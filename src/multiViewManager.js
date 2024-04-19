@@ -7,11 +7,9 @@ import {
   getDirectionName,
   getHeightFromTerrainProvider,
 } from '@vcmap/core';
-import { setColumnRight } from './util/layoutHelper.js';
-import {
-  mountMultiViewComponent,
-  handleJumpToViewpoint,
-} from './util/componentHelper.js';
+import { PanelLocation } from '@vcmap/ui';
+import MultiViewGrid from './MultiViewGrid.vue';
+import { name } from '../package.json';
 
 /**
  * @typedef {Object} MultiViewManager
@@ -19,6 +17,7 @@ import {
  * @property {function():void} deactivate Deactivates the multi view.
  * @property {boolean} active If multi view is currently active.
  * @property {Map<number, import("@vcmap/core").VcsMap>} views A map with view id as keys and values the map instances.
+ * @property {import('vue').Ref<number | undefined>} activeView Id of active view.
  * @property {import("@vcmap/core").VcsEvent<boolean>} stateChanged Event that raises if the active state changes.
  * @property {import("vue").ComputedRef<boolean>} disabled Whether the multi view is disabled due to missing
  * @property {function():void} destroy
@@ -110,7 +109,7 @@ function setDefaultObliqueCollection(app, defaultCollection) {
  * - adding the multi-view panel and changing the main vcs maps size
  * - setting up the maps for the views
  * - ensuring the synchronization between the main map and the views
- * @param {import("@vcmap/core").VcsApp} app The VcsUiApp instance
+ * @param {import("@vcmap/ui").VcsUiApp} app The VcsUiApp instance
  * @param {import('./index').MultiViewConfig} viewConfig The multi view config which defines the different views and the layout.
  * @returns {MultiViewManager} The api of the multi view manager.
  */
@@ -135,9 +134,6 @@ export default function createMultiViewManager(app, viewConfig) {
   let postRenderListener = () => {};
   let mapChangedListener = () => {};
 
-  /** Removes the multi view panel and resets the main map to full size. */
-  let resetLayout = () => {};
-  let destroyMultiViewComponent = () => {};
   /** Event that is raised when there is a change to the active state. */
   const stateChanged = new VcsEvent();
 
@@ -253,8 +249,7 @@ export default function createMultiViewManager(app, viewConfig) {
       views.clear();
 
       defaultObliqueCollectionWatcher?.();
-      resetLayout();
-      destroyMultiViewComponent();
+      app.panelManager.removeOwner(name);
 
       isActive = false;
       stateChanged.raiseEvent(isActive);
@@ -292,13 +287,17 @@ export default function createMultiViewManager(app, viewConfig) {
         postRenderListener = map.postRender.addEventListener(updateView);
       });
 
-      resetLayout = setColumnRight();
-
-      destroyMultiViewComponent = mountMultiViewComponent(
-        app.vueI18n,
-        viewTitles,
-        activeView,
-        (index) => handleJumpToViewpoint(app, views, index),
+      app.panelManager.add(
+        {
+          id: name,
+          component: MultiViewGrid,
+          props: {
+            viewTitles,
+            activeView,
+          },
+        },
+        name,
+        PanelLocation.RIGHT,
       );
 
       const activatePromises = [...views].map(async ([key, map]) => {
@@ -333,6 +332,15 @@ export default function createMultiViewManager(app, viewConfig) {
     }
   }
 
+  // makes sure that plugin is deactivated if panel is removed by other plugin
+  const removePanelRemovedListener = app.panelManager.removed.addEventListener(
+    ({ id }) => {
+      if (id === name) {
+        deactivate();
+      }
+    },
+  );
+
   return {
     activate,
     deactivate,
@@ -340,11 +348,13 @@ export default function createMultiViewManager(app, viewConfig) {
       deactivate();
       stateChanged.destroy();
       removeObliqueListeners();
+      removePanelRemovedListener();
     },
     get active() {
       return isActive;
     },
     views,
+    activeView,
     stateChanged,
     disabled,
   };
