@@ -1,5 +1,5 @@
 <template>
-  <v-app class="absolute-fill">
+  <v-sheet class="absolute-fill">
     <div class="absolute-fill multi-view-grid">
       <MultiViewMap
         v-for="(title, index) in viewTitles"
@@ -11,46 +11,47 @@
         :active="index === activeView"
       />
     </div>
-  </v-app>
+  </v-sheet>
 </template>
 
-<script>
-  import { VApp } from 'vuetify/lib';
-  import { computed, inject } from 'vue';
+<script lang="ts">
+  import { VSheet } from 'vuetify/components';
+  import { computed, defineComponent, inject } from 'vue';
   import { Viewpoint } from '@vcmap/core';
+  import { VcsUiApp } from '@vcmap/ui';
   import MultiViewMap from './MultiViewMap.vue';
+  import { MultiViewPlugin } from './index.js';
+  import { name } from '../package.json';
 
-  export default {
+  export default defineComponent({
     components: {
       MultiViewMap,
-      VApp,
+      VSheet,
     },
     name: 'MultiViewGrid',
     props: {
       viewTitles: {
-        type: Array,
+        type: Array<string>,
         required: true,
       },
     },
     setup(props) {
-      /** @type {import("@vcmap/ui").VcsUiApp} */
-      const app = inject('vcsApp');
-      const plugin = app.plugins.getByKey('@vcmap/multi-view');
-      /** @type {import("./multiViewManager.js").MultiViewManager} */
+      const app = inject('vcsApp') as VcsUiApp;
+      const plugin = app.plugins.getByKey(name) as MultiViewPlugin;
       const manager = plugin.multiView;
       const { views, activeView } = manager;
 
       const gridTemplateAreas = computed(() => {
         return props.viewTitles
-          .map((title, index) => `"view-${index}"`)
+          .map((_title, index) => `"view-${index}"`)
           .join(' ');
       });
 
       /**
        * Applies the viewpoint of one of the multi views to the main map.
-       * @param {number} index Index of the view whose viewpoint is to be applied to the main map.
+       * @param index Index of the view whose viewpoint is to be applied to the main map.
        */
-      async function handleJumpToViewpoint(index) {
+      async function handleJumpToViewpoint(index: number): Promise<void> {
         const viewpointOfIndex = await views.get(index)?.getViewpoint();
         const currentViewpoint = await app.maps.activeMap?.getViewpoint();
         if (viewpointOfIndex && currentViewpoint) {
@@ -60,7 +61,7 @@
             pitch: -45,
             distance: currentViewpoint.distance,
           });
-          app.maps.activeMap?.gotoViewpoint(newViewpoint);
+          await app.maps.activeMap?.gotoViewpoint(newViewpoint);
         }
       }
       return {
@@ -69,7 +70,7 @@
         handleJumpToViewpoint,
       };
     },
-  };
+  });
 </script>
 
 <style scoped>

@@ -1,6 +1,6 @@
 {
   "name": "@vcmap/multi-view",
-  "version": "1.1.0",
+  "version": "2.0.0-rc.0",
   "description": "Renders next to the map multiple alternative views for the same viewpoint.",
   "type": "module",
   "main": "src/index.js",
@@ -16,7 +16,8 @@
     "lint": "npm run lint:js && npm run lint:prettier",
     "format": "prettier --write --list-different . && npm run lint:js -- --fix",
     "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "type-check": "vue-tsc --noEmit"
   },
   "author": "Tobias Krauth <tkrauth@vc.systems>",
   "license": "MIT",
@@ -47,21 +48,23 @@
   },
   "prettier": "@vcsuite/eslint-config/prettier.js",
   "peerDependencies": {
-    "@vcmap-cesium/engine": "^4.0.3",
-    "@vcmap/core": "^5.2.0",
-    "@vcmap/ui": "^5.2.0",
+    "@vcmap-cesium/engine": "^10.0.1",
+    "@vcmap/core": "^6.0.0-rc.2",
+    "@vcmap/ui": "^6.0.0-rc.2",
     "ol": "^7.5.2",
-    "vue": "~2.7.3",
-    "vuetify": "~2.6.7"
+    "vue": "~3.4.27",
+    "vuetify": "^3.6.13"
   },
   "devDependencies": {
-    "@vcmap/plugin-cli": "^3.0.0",
-    "@vcsuite/eslint-config": "^3.0.5",
-    "@vitest/coverage-v8": "^0.34.5",
+    "@vcmap/plugin-cli": "^4.0.0-rc.4",
+    "@vcsuite/eslint-config": "^3.0.8",
+    "@vitest/coverage-v8": "^2.0.3",
     "jest-canvas-mock": "^2.5.2",
     "jsdom": "^22.1.0",
     "resize-observer-polyfill": "^1.5.1",
-    "vitest": "^0.34.5"
+    "typescript": "^5.4.3",
+    "vitest": "^2.0.3",
+    "vue-tsc": "^2.0.7"
   },
-  "mapVersion": "^5.2"
+  "mapVersion": "^6.0"
 }

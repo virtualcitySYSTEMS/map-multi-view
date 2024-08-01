@@ -1,19 +1,20 @@
-import { ToolboxType } from '@vcmap/ui';
+import { ToolboxType, type VcsUiApp } from '@vcmap/ui';
 import { reactive, watch } from 'vue';
+import { MultiViewManager } from '../multiViewManager.js';
 
 /**
  * Adds the multi view button to the toolbox and handles changes to title, active and disabled of the action.
- * @param {import("@vcmap/ui").VcsUiApp} app The VcsUiApp instance.
- * @param {import("../multiViewManager").MultiViewManager} multiViewManager The multiViewManager instance.
- * @param {string} name The name of the plugin.
- * @returns {function():void} Remove callback for button.
+ * @param app The VcsUiApp instance.
+ * @param multiViewManager The multiViewManager instance.
+ * @param name The name of the plugin.
+ * @returns Remove callback for button.
  */
-export default function addMultiViewButton(app, multiViewManager, name) {
-  /**
-   * @param {boolean} isActive
-   * @returns {string}
-   */
-  function getToggleTitle(isActive) {
+export default function addMultiViewButton(
+  app: VcsUiApp,
+  multiViewManager: MultiViewManager,
+  name: string,
+): () => void {
+  function getToggleTitle(isActive: boolean): string {
     if (isActive) {
       return 'multiView.deactivate';
     } else {

@@ -1,34 +1,49 @@
-import { computed, ref, shallowRef, watch } from 'vue';
 import {
+  computed,
+  ComputedRef,
+  Ref,
+  ref,
+  ShallowRef,
+  shallowRef,
+  watch,
+  WatchStopHandle,
+} from 'vue';
+import {
+  ObliqueCollection,
   ObliqueMap,
   OpenlayersMap,
   VcsEvent,
+  VcsMap,
   Viewpoint,
   getDirectionName,
   getHeightFromTerrainProvider,
 } from '@vcmap/core';
-import { PanelLocation } from '@vcmap/ui';
+import { PanelLocation, VcsUiApp } from '@vcmap/ui';
 import MultiViewGrid from './MultiViewGrid.vue';
 import { name } from '../package.json';
+import { PluginConfig } from './index.js';
 
-/**
- * @typedef {Object} MultiViewManager
- * @property {function():Promise<void>} activate Activates the multi view.
- * @property {function():void} deactivate Deactivates the multi view.
- * @property {boolean} active If multi view is currently active.
- * @property {Map<number, import("@vcmap/core").VcsMap>} views A map with view id as keys and values the map instances.
- * @property {import('vue').Ref<number | undefined>} activeView Id of active view.
- * @property {import("@vcmap/core").VcsEvent<boolean>} stateChanged Event that raises if the active state changes.
- * @property {import("vue").ComputedRef<boolean>} disabled Whether the multi view is disabled due to missing
- * @property {function():void} destroy
- */
+export type MultiViewManager = {
+  activate: () => Promise<void>;
+  deactivate: () => void;
+  active: boolean;
+  // A map with view id as keys and values the map instances.
+  views: Map<number, VcsMap>;
+  activeView: Ref<number | undefined>;
+  stateChanged: VcsEvent<boolean>;
+  disabled: ComputedRef<boolean>;
+  destroy: () => void;
+};
 
 /**
  * Enriches the groundPosition of a Viewpoint with the height from a oblique terrain provider.
- * @param {import("@vcmap/core").ObliqueMap} obliqueMap The oblique map which terrain provide is used to determine the height.
- * @param {import("@vcmap/core").Viewpoint} viewpoint The viewpoint which should be enriched with a z ground coordinate
+ * @param obliqueMap The oblique map which terrain provide is used to determine the height.
+ * @param viewpoint The viewpoint which should be enriched with a z ground coordinate
  */
-async function setHeightFromOblique(obliqueMap, viewpoint) {
+async function setHeightFromOblique(
+  obliqueMap: ObliqueMap,
+  viewpoint: Viewpoint,
+): Promise<void> {
   const terrainProvider = obliqueMap.currentImage?.meta?.terrainProvider;
   if (terrainProvider) {
     if (viewpoint.groundPosition) {
@@ -44,20 +59,20 @@ async function setHeightFromOblique(obliqueMap, viewpoint) {
 
 /**
  * Sets the default collection and adds all the necessary listeners to the maps collection and the oblique map so the defaultOblique collection is always updated.
- * @param {import("@vcmap/core").VcsApp} app
- * @param {import("vue").ShallowRef<import("@vcmap/core").ObliqueCollection | undefined>} defaultCollection
- * @returns {function():void} remove callback for the oblique listeners.
+ * @returns remove callback for the oblique listeners.
  */
-function setDefaultObliqueCollection(app, defaultCollection) {
-  let collectionChangedListener;
-  /** @type {import("@vcmap/core").ObliqueMap | undefined} */
-  let currentMap;
+function setDefaultObliqueCollection(
+  app: VcsUiApp,
+  defaultCollection: Ref<ObliqueCollection | undefined>,
+): () => void {
+  let collectionChangedListener: () => void;
+  let currentMap: ObliqueMap | undefined;
   /**
    * Sets the defaultCollection and updates on collectionChanged events of the passed map.
-   * @param {import("@vcmap/core").ObliqueMap | undefined} map The source oblique map for the default oblique collection.
-   * @returns {function():void} Remove callback for the collectionChanged listener.
+   * @param  map The source oblique map for the default oblique collection.
+   * @returns Remove callback for the collectionChanged listener.
    */
-  function handleObliqueCollectionChanges(map) {
+  function handleObliqueCollectionChanges(map?: ObliqueMap): () => void {
     if (map) {
       currentMap = map;
       defaultCollection.value = map.collection || undefined;
@@ -73,11 +88,10 @@ function setDefaultObliqueCollection(app, defaultCollection) {
   /**
    * Sets the first oblique map of the maps collection as the source for the default collection.
    */
-  function setFirstObliqueMap() {
-    const obliqueMap =
-      /** @type {import("@vcmap/core").ObliqueMap | undefined} */ (
-        app.maps.getByType(ObliqueMap.className)[0]
-      );
+  function setFirstObliqueMap(): void {
+    const obliqueMap = app.maps.getByType(ObliqueMap.className)[0] as
+      | ObliqueMap
+      | undefined;
     collectionChangedListener = handleObliqueCollectionChanges(obliqueMap);
   }
 
@@ -109,44 +123,43 @@ function setDefaultObliqueCollection(app, defaultCollection) {
  * - adding the multi-view panel and changing the main vcs maps size
  * - setting up the maps for the views
  * - ensuring the synchronization between the main map and the views
- * @param {import("@vcmap/ui").VcsUiApp} app The VcsUiApp instance
- * @param {import('./index').MultiViewConfig} viewConfig The multi view config which defines the different views and the layout.
- * @returns {MultiViewManager} The api of the multi view manager.
+ * @param app The VcsUiApp instance
+ * @param viewConfig The multi view config which defines the different views and the layout.
+ * @returns The api of the multi view manager.
  */
-export default function createMultiViewManager(app, viewConfig) {
+export default function createMultiViewManager(
+  app: VcsUiApp,
+  viewConfig: PluginConfig,
+): MultiViewManager {
   /** Whether the multi view is currently active */
   let isActive = false;
   /** Whether there is currently updateView() running. */
   let updateRunning = false;
 
-  /** @type {Map<number, import("@vcmap/core").VcsMap>} */
-  const views = new Map();
+  const views: Map<number, VcsMap> = new Map();
   /**
    * The active view, which is calculated from the viewpoints heading and the ObliqueDirection of the view.
-   * @type {import("vue").Ref<number | undefined>}
    */
-  const activeView = ref();
+  const activeView: Ref<number | undefined> = ref();
 
   /**
    * Triggers the updateView on postRender event of the activeMap
-   * @type {function():void | undefined}
    */
-  let postRenderListener = () => {};
-  let mapChangedListener = () => {};
+  let postRenderListener: (() => void) | undefined = () => {};
+  let mapChangedListener: () => void = () => {};
 
   /** Event that is raised when there is a change to the active state. */
-  const stateChanged = new VcsEvent();
+  const stateChanged = new VcsEvent<boolean>();
 
   /**
    * The default oblique collection is the collection that is set on the oblique map that is on index 0 when getting oblique maps by type. If an oblique map is added later, the collection of this map is the default. If this map is removed, the default jumps back to the first in the oblique maps array.
-   * @type {import("vue").ShallowRef<import("@vcmap/core").ObliqueCollection | undefined>}
    */
-  const defaultObliqueCollection = shallowRef();
+  const defaultObliqueCollection: ShallowRef<ObliqueCollection | undefined> =
+    shallowRef();
   /**
    * Reacts to changes of the defaultObliqueCollection and updates all views that show the default oblique collection.
-   * @type {import("vue").WatchStopHandle | undefined}
    */
-  let defaultObliqueCollectionWatcher;
+  let defaultObliqueCollectionWatcher: WatchStopHandle;
 
   const removeObliqueListeners = setDefaultObliqueCollection(
     app,
@@ -157,10 +170,13 @@ export default function createMultiViewManager(app, viewConfig) {
 
   /**
    * Creates oblique maps with initial viewpoint and sets them on the views Map object.
-   * @param {number} key The index of the map in the views config array. This is set as key in the views map.
-   * @param {import("@vcmap/core").Viewpoint} viewpoint The initial viewpoint for the oblique view.
+   * @param key The index of the map in the views config array. This is set as key in the views map.
+   * @param viewpoint The initial viewpoint for the oblique view.
    */
-  async function setupObliqueMap(key, viewpoint) {
+  async function setupObliqueMap(
+    key: number,
+    viewpoint: Viewpoint,
+  ): Promise<void> {
     const map = new ObliqueMap({ switchOnEdge: false });
     views.set(key, map);
     if (viewConfig.views[key].collection) {
@@ -175,7 +191,7 @@ export default function createMultiViewManager(app, viewConfig) {
         );
       }
     } else if (defaultObliqueCollection.value) {
-      map.setCollection(defaultObliqueCollection.value, viewpoint);
+      await map.setCollection(defaultObliqueCollection.value, viewpoint);
     } else {
       throw new Error('map contains no oblique collection');
     }
@@ -184,9 +200,8 @@ export default function createMultiViewManager(app, viewConfig) {
 
   /**
    * Updates the viewpoint of all the views. Also sets the active view.
-   * @returns {Promise<void>}
    */
-  async function updateView() {
+  async function updateView(): Promise<void> {
     const { activeMap } = app.maps;
     if (!updateRunning && activeMap) {
       updateRunning = true;
@@ -196,11 +211,9 @@ export default function createMultiViewManager(app, viewConfig) {
       if (currentViewpoint) {
         // To avoid sending a request to the terrain for every view when the Z coordinate is missing (if activeMap is 2D map)
         if (!currentViewpoint.groundPosition?.[2]) {
-          const obliqueMap = /** @type {import("@vcmap/core").ObliqueMap} */ (
-            [...views.values()].find(
-              (map) => map.className === ObliqueMap.className,
-            )
-          );
+          const obliqueMap = [...views.values()].find(
+            (map) => map.className === ObliqueMap.className,
+          ) as ObliqueMap;
           // check if there is an obliqueMap in the views to get the terrain from.
           if (obliqueMap) {
             await setHeightFromOblique(obliqueMap, currentViewpoint);
@@ -225,7 +238,9 @@ export default function createMultiViewManager(app, viewConfig) {
               newActiveView = Number(key);
             }
           }
-          await map.gotoViewpoint(newViewpoint);
+          if (newViewpoint) {
+            await map.gotoViewpoint(newViewpoint);
+          }
         });
         await Promise.all(promises);
       }
@@ -237,7 +252,7 @@ export default function createMultiViewManager(app, viewConfig) {
   /**
    * Deactivates the multi view.
    */
-  function deactivate() {
+  function deactivate(): void {
     if (isActive) {
       postRenderListener?.();
       mapChangedListener();
@@ -259,7 +274,7 @@ export default function createMultiViewManager(app, viewConfig) {
   /**
    * Activates the multi view.
    */
-  async function activate() {
+  async function activate(): Promise<void> {
     if (!isActive && !disabled.value) {
       const { activeMap } = app.maps;
       const viewpoint = await activeMap?.getViewpoint();
@@ -271,7 +286,7 @@ export default function createMultiViewManager(app, viewConfig) {
       // setting up all the maps for the views.
       for (let index = 0; index < viewConfig.views.length; index++) {
         const options = viewConfig.views[index];
-        if (options.map === 'ObliqueMap') {
+        if (options.map === 'ObliqueMap' && viewpoint) {
           obliquePromises.push(setupObliqueMap(index, viewpoint));
           viewTitles.push(`multiView.${getDirectionName(options.direction)}`);
         } else {
@@ -309,18 +324,20 @@ export default function createMultiViewManager(app, viewConfig) {
 
       defaultObliqueCollectionWatcher = watch(
         defaultObliqueCollection,
-        (newCollection) => {
+        async (newCollection) => {
           if (newCollection) {
-            viewConfig.views.forEach((view, index) => {
-              if (
-                view.map === ObliqueMap.className &&
-                view.collection === null
-              ) {
-                /** @type {import("@vcmap/core").ObliqueMap} */ (
-                  views.get(index)
-                )?.setCollection(newCollection);
-              }
-            });
+            await Promise.all(
+              viewConfig.views.map(async (view, index) => {
+                if (
+                  view.map === ObliqueMap.className &&
+                  view.collection === null
+                ) {
+                  await (views.get(index) as ObliqueMap).setCollection(
+                    newCollection,
+                  );
+                }
+              }),
+            );
           } else {
             deactivate();
           }
@@ -344,13 +361,13 @@ export default function createMultiViewManager(app, viewConfig) {
   return {
     activate,
     deactivate,
-    destroy() {
+    destroy(): void {
       deactivate();
       stateChanged.destroy();
       removeObliqueListeners();
       removePanelRemovedListener();
     },
-    get active() {
+    get active(): boolean {
       return isActive;
     },
     views,
