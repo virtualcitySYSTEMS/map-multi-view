@@ -24,7 +24,7 @@ export type PluginConfig = {
 
 type PluginState = {
   // Whether the plugin is active.
-  active: boolean;
+  active?: boolean;
 };
 
 export type MultiViewPlugin = VcsPlugin<PluginConfig, PluginState> & {
@@ -105,8 +105,10 @@ export default function plugin(): MultiViewPlugin {
       }
     },
     getState(): PluginState {
+      const active = multiViewManager?.active;
+
       return {
-        active: multiViewManager?.active,
+        ...(active && { active }),
       };
     },
     i18n: {
