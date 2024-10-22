@@ -9,12 +9,14 @@ import {
   WatchStopHandle,
 } from 'vue';
 import {
+  CesiumMap,
   ObliqueCollection,
   ObliqueMap,
   OpenlayersMap,
   VcsEvent,
   VcsMap,
   Viewpoint,
+  VisualisationType,
   getDirectionName,
   getHeightFromTerrainProvider,
 } from '@vcmap/core';
@@ -249,6 +251,27 @@ export default function createMultiViewManager(
     }
   }
 
+  function setPostRenderListener(map?: VcsMap<VisualisationType> | null): void {
+    postRenderListener?.();
+    if (map instanceof CesiumMap) {
+      const camera = map.getCesiumWidget()?.camera;
+      if (camera) {
+        const prevPercentageChanged = camera?.percentageChanged;
+        camera.percentageChanged = 0.001;
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        const changedListener = camera.changed.addEventListener(updateView);
+        postRenderListener = (): void => {
+          changedListener();
+          camera.percentageChanged = prevPercentageChanged;
+        };
+      } else {
+        postRenderListener = undefined;
+      }
+    } else {
+      postRenderListener = map?.postRender.addEventListener(updateView);
+    }
+  }
+
   /**
    * Deactivates the multi view.
    */
@@ -296,11 +319,11 @@ export default function createMultiViewManager(
 
       await Promise.all(obliquePromises);
 
-      postRenderListener = activeMap?.postRender.addEventListener(updateView);
+      setPostRenderListener(activeMap);
       mapChangedListener = app.maps.mapActivated.addEventListener((map) => {
-        postRenderListener?.();
-        postRenderListener = map.postRender.addEventListener(updateView);
+        setPostRenderListener(map);
       });
+      await updateView();
 
       app.panelManager.add(
         {
