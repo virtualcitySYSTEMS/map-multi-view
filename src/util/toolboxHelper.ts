@@ -14,17 +14,9 @@ export default function addMultiViewButton(
   multiViewManager: MultiViewManager,
   name: string,
 ): () => void {
-  function getToggleTitle(isActive: boolean): string {
-    if (isActive) {
-      return 'multiView.deactivate';
-    } else {
-      return 'multiView.activate';
-    }
-  }
-
   const action = reactive({
     name: 'multi-view-action',
-    title: getToggleTitle(multiViewManager.active),
+    title: 'multiView.title',
     icon: '$vcsMultiView',
     active: multiViewManager.active,
     background: false,
@@ -41,7 +33,6 @@ export default function addMultiViewButton(
   const stateChangedListener = multiViewManager.stateChanged.addEventListener(
     (activeState) => {
       action.active = activeState;
-      action.title = getToggleTitle(activeState);
     },
   );
 

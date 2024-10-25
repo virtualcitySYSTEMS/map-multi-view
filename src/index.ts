@@ -114,8 +114,7 @@ export default function plugin(): MultiViewPlugin {
     i18n: {
       en: {
         multiView: {
-          activate: 'Enable Multi View',
-          deactivate: 'Disable Multi View',
+          title: 'Multiview tool',
           north: 'north',
           east: 'east',
           south: 'south',
@@ -124,8 +123,7 @@ export default function plugin(): MultiViewPlugin {
       },
       de: {
         multiView: {
-          activate: 'Mehrfachansicht aktivieren',
-          deactivate: 'Mehrfachansicht deaktivieren',
+          title: 'Mehrfachansicht',
           north: 'Norden',
           east: 'Osten',
           south: 'Süden',
