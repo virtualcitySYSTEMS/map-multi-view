@@ -101,7 +101,15 @@ export default function plugin(): MultiViewPlugin {
       // needs to be initialized, otherwise it might not contain a collection.
       await vcsUiApp.maps.getByType(ObliqueMap.className)[0]?.initialize();
       if (state?.active) {
-        await multiViewManager.activate();
+        if (vcsUiApp.maps.activeMap) {
+          await multiViewManager.activate();
+        } else {
+          const mapActivatedListener =
+            vcsUiApp.maps.mapActivated.addEventListener(async () => {
+              await multiViewManager.activate();
+              mapActivatedListener();
+            });
+        }
       }
     },
     getState(): PluginState {

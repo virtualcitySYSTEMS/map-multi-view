@@ -1,3 +1,7 @@
+# v2.0.1
+
+- fixes bug which caused multiView to not load from (url) state
+
 # v2.0.0
 
 - updates @vcmap/core and @vcmap/ui to 6.x
