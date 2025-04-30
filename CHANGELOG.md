@@ -1,3 +1,7 @@
+# v2.0.2
+
+- fixes bug where loading from state failed
+
 # v2.0.1
 
 - fixes bug which caused multiView to not load from (url) state

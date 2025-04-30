@@ -1,5 +1,14 @@
-import { ObliqueMap, ObliqueViewDirection, VcsEvent } from '@vcmap/core';
+import { watch } from 'vue';
+import {
+  CesiumMap,
+  ObliqueMap,
+  ObliqueViewDirection,
+  VcsEvent,
+  type ObliqueImage,
+  type VcsMap,
+} from '@vcmap/core';
 import { VcsPlugin, VcsUiApp } from '@vcmap/ui';
+import type { Event } from '@vcmap-cesium/engine';
 import { name, version, mapVersion } from '../package.json';
 import createMultiViewManager, {
   MultiViewManager,
@@ -60,6 +69,71 @@ export const viewConfig: PluginConfig = {
   ],
 };
 
+function isMapLoaded(map: VcsMap): boolean {
+  if (map instanceof CesiumMap) {
+    const globe = map.getCesiumWidget()?.scene.globe;
+    return !!globe?.tilesLoaded;
+  } else if (map instanceof ObliqueMap) {
+    return !!map.currentImage;
+  } else {
+    return true;
+  }
+}
+
+function getMapLoadedEvent(
+  map: VcsMap,
+): Event | VcsEvent<ObliqueImage> | undefined {
+  if (map instanceof CesiumMap) {
+    const globe = map.getCesiumWidget()?.scene.globe;
+    if (globe) {
+      return globe.tileLoadProgressEvent;
+    } else {
+      throw new Error('no globe available');
+    }
+  } else if (map instanceof ObliqueMap) {
+    if (map.imageChanged) {
+      return map.imageChanged;
+    } else {
+      throw new Error('no imageChanged event available');
+    }
+  } else {
+    return undefined;
+  }
+}
+
+async function activateWhenFirstMapLoaded(
+  app: VcsUiApp,
+  multiViewManager: MultiViewManager,
+): Promise<void> {
+  const { maps } = app;
+  let mapActivatedListener = (): void => {};
+  let mapLoadedListener: (() => void) | undefined;
+
+  async function activateWhenMapLoaded(map: VcsMap): Promise<void> {
+    mapLoadedListener?.();
+    if (isMapLoaded(map)) {
+      mapActivatedListener();
+      await multiViewManager.activate();
+    } else {
+      mapLoadedListener = getMapLoadedEvent(map)?.addEventListener(() => {
+        if (isMapLoaded(map)) {
+          mapActivatedListener();
+          mapLoadedListener?.();
+          // eslint-disable-next-line no-void
+          void multiViewManager.activate();
+        }
+      });
+    }
+  }
+
+  mapActivatedListener = maps.mapActivated.addEventListener(
+    activateWhenMapLoaded,
+  );
+  if (maps.activeMap) {
+    await activateWhenMapLoaded(maps.activeMap);
+  }
+}
+
 export default function plugin(): MultiViewPlugin {
   let multiViewManager: MultiViewManager;
   let destroyButton: () => void = () => {};
@@ -101,14 +175,19 @@ export default function plugin(): MultiViewPlugin {
       // needs to be initialized, otherwise it might not contain a collection.
       await vcsUiApp.maps.getByType(ObliqueMap.className)[0]?.initialize();
       if (state?.active) {
-        if (vcsUiApp.maps.activeMap) {
+        if (!multiViewManager.disabled && vcsUiApp.maps.activeMap) {
           await multiViewManager.activate();
         } else {
-          const mapActivatedListener =
-            vcsUiApp.maps.mapActivated.addEventListener(async () => {
-              await multiViewManager.activate();
-              mapActivatedListener();
-            });
+          const disabledWatcher = watch(
+            multiViewManager.disabled,
+            async (disabled) => {
+              if (!disabled) {
+                disabledWatcher();
+                await activateWhenFirstMapLoaded(vcsUiApp, multiViewManager);
+              }
+            },
+            { immediate: true },
+          );
         }
       }
     },

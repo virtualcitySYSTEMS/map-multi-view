@@ -301,6 +301,9 @@ export default function createMultiViewManager(
     if (!isActive && !disabled.value) {
       const { activeMap } = app.maps;
       const viewpoint = await activeMap?.getViewpoint();
+      if (!viewpoint) {
+        throw new Error('No viewpoint available.');
+      }
 
       /** The titles to be shown in the upper left corner of each view. */
       const viewTitles = [];
@@ -309,11 +312,11 @@ export default function createMultiViewManager(
       // setting up all the maps for the views.
       for (let index = 0; index < viewConfig.views.length; index++) {
         const options = viewConfig.views[index];
-        if (options.map === 'ObliqueMap' && viewpoint) {
+        if (options.map === 'ObliqueMap') {
           obliquePromises.push(setupObliqueMap(index, viewpoint));
           viewTitles.push(`multiView.${getDirectionName(options.direction)}`);
         } else {
-          throw new Error(`The follwing map is not supported: ${options.map}`); // validation should happen when parsing the config
+          throw new Error(`The following map is not supported: ${options.map}`); // validation should happen when parsing the config
         }
       }
 
