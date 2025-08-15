@@ -23,6 +23,7 @@ build:
   <<: *job_definition
   script:
     - npm ci
+    - npx vcmplugin ensure-types
   before_script:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
@@ -50,11 +51,7 @@ lint:
   stage: test
   script:
     - npm run lint
-
-test:
-  <<: *after_build_definition
-  stage: test
-  script:
+  before_script:
     - npm run coverage -- --reporter junit --outputFile test-report.xml
   coverage: '/^Statements\s*:\s*([^%]+)/'
   artifacts:
@@ -72,6 +69,17 @@ buildPreview:
   stage: bundle
   script:
     - npm run buildStagingApp
+    - mkdir -p dist/public
+    - cp -r public/* dist/public/ 2>/dev/null || echo "No public files to copy"
+  before_script:
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_RUNNER_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan gitlab.virtualcitysystems.de >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - git config user.name "Gitlab Runner"
+    - git config user.email "gitlab-runner@vc.systems"
 
 bundle:
   <<: *after_build_definition

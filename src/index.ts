@@ -1,147 +1,46 @@
-import { watch } from 'vue';
 import {
-  CesiumMap,
-  ObliqueMap,
-  ObliqueViewDirection,
-  VcsEvent,
-  type ObliqueImage,
-  type VcsMap,
-} from '@vcmap/core';
-import { VcsPlugin, VcsUiApp } from '@vcmap/ui';
-import type { Event } from '@vcmap-cesium/engine';
-import { name, version, mapVersion } from '../package.json';
-import createMultiViewManager, {
-  MultiViewManager,
-} from './multiViewManager.js';
-import addMultiViewButton from './util/toolboxHelper.js';
+  PanelLocation,
+  type PluginConfigEditor,
+  ToolboxType,
+  type VcsAction,
+  type VcsPlugin,
+  type VcsUiApp,
+} from '@vcmap/ui';
+import { reactive } from 'vue';
+import { mapVersion, name as pluginName, version } from '../package.json';
+import MultiViewComponent from './MultiViewComponent.vue';
+import MultiViewConfigEditor from './MultiViewConfigEditor.vue';
+import { getDefaultOptions } from './defaultOptions.js';
 
-type AbstractMultiViewOptions = {
-  // map className
-  map: string;
+export type MultiViewPluginConfig = {
+  activeOnStartup?: boolean; // default is false
+  startingSideMap?: string;
+  allowedSideMaps?: string[];
+  obliqueCollectionName?: string;
 };
 
-type ObliqueMultiViewOptions = AbstractMultiViewOptions & {
-  // The collection that should be displayed in this view. If null, the oblique collection of the current oblique map is displayed.
-  collection: string | null;
-  direction: ObliqueViewDirection;
+export type MultiViewPlugin = VcsPlugin<
+  MultiViewPluginConfig,
+  Record<never, never>
+> & {
+  readonly config: MultiViewPluginConfig;
 };
 
-/** The multiView internal config, to lay the foundation for later config/state. In version 2 this is more like a state since it can be modified during runtime. */
-export type PluginConfig = {
-  views: ObliqueMultiViewOptions[];
-};
+export default function plugin(
+  options: MultiViewPluginConfig,
+): MultiViewPlugin {
+  const pluginConfig: MultiViewPluginConfig = {
+    ...getDefaultOptions(),
+    ...options,
+  };
+  let app: VcsUiApp | undefined;
+  const panelManagerListener: (() => void)[] = [];
 
-type PluginState = {
-  // Whether the plugin is active.
-  active?: boolean;
-};
-
-export type MultiViewPlugin = VcsPlugin<PluginConfig, PluginState> & {
-  multiView: MultiViewManager;
-  active: boolean;
-  activate(): Promise<void>;
-  deactivate(): void;
-  stateChanged: VcsEvent<boolean>;
-};
-
-export const viewConfig: PluginConfig = {
-  views: [
-    {
-      map: 'ObliqueMap',
-      collection: null,
-      direction: ObliqueViewDirection.NORTH,
-    },
-    {
-      map: 'ObliqueMap',
-      collection: null,
-      direction: ObliqueViewDirection.EAST,
-    },
-    {
-      map: 'ObliqueMap',
-      collection: null,
-      direction: ObliqueViewDirection.SOUTH,
-    },
-    {
-      map: 'ObliqueMap',
-      collection: null,
-      direction: ObliqueViewDirection.WEST,
-    },
-  ],
-};
-
-function isMapLoaded(map: VcsMap): boolean {
-  if (map instanceof CesiumMap) {
-    const globe = map.getCesiumWidget()?.scene.globe;
-    return !!globe?.tilesLoaded;
-  } else if (map instanceof ObliqueMap) {
-    return !!map.currentImage;
-  } else {
-    return true;
-  }
-}
-
-function getMapLoadedEvent(
-  map: VcsMap,
-): Event | VcsEvent<ObliqueImage> | undefined {
-  if (map instanceof CesiumMap) {
-    const globe = map.getCesiumWidget()?.scene.globe;
-    if (globe) {
-      return globe.tileLoadProgressEvent;
-    } else {
-      throw new Error('no globe available');
-    }
-  } else if (map instanceof ObliqueMap) {
-    if (map.imageChanged) {
-      return map.imageChanged;
-    } else {
-      throw new Error('no imageChanged event available');
-    }
-  } else {
-    return undefined;
-  }
-}
-
-async function activateWhenFirstMapLoaded(
-  app: VcsUiApp,
-  multiViewManager: MultiViewManager,
-): Promise<void> {
-  const { maps } = app;
-  let mapActivatedListener = (): void => {};
-  let mapLoadedListener: (() => void) | undefined;
-
-  async function activateWhenMapLoaded(map: VcsMap): Promise<void> {
-    mapLoadedListener?.();
-    if (isMapLoaded(map)) {
-      mapActivatedListener();
-      await multiViewManager.activate();
-    } else {
-      mapLoadedListener = getMapLoadedEvent(map)?.addEventListener(() => {
-        if (isMapLoaded(map)) {
-          mapActivatedListener();
-          mapLoadedListener?.();
-          // eslint-disable-next-line no-void
-          void multiViewManager.activate();
-        }
-      });
-    }
-  }
-
-  mapActivatedListener = maps.mapActivated.addEventListener(
-    activateWhenMapLoaded,
-  );
-  if (maps.activeMap) {
-    await activateWhenMapLoaded(maps.activeMap);
-  }
-}
-
-export default function plugin(): MultiViewPlugin {
-  let multiViewManager: MultiViewManager;
-  let destroyButton: () => void = () => {};
-  let mapAddedListener: () => void = () => {};
+  let removeMapActiveListener: (() => void) | undefined;
 
   return {
     get name(): string {
-      return name;
+      return pluginName;
     },
     get version(): string {
       return version;
@@ -149,79 +48,163 @@ export default function plugin(): MultiViewPlugin {
     get mapVersion(): string {
       return mapVersion;
     },
-    get multiView(): MultiViewManager {
-      return multiViewManager;
+    get config(): MultiViewPluginConfig {
+      return { ...getDefaultOptions(), ...pluginConfig };
     },
-    get active(): boolean {
-      return multiViewManager?.active;
-    },
-    async activate(): Promise<void> {
-      await multiViewManager?.activate();
-    },
-    deactivate(): void {
-      multiViewManager?.deactivate();
-    },
-    get stateChanged(): VcsEvent<boolean> {
-      return multiViewManager.stateChanged;
-    },
-    async initialize(vcsUiApp: VcsUiApp, state?: PluginState): Promise<void> {
-      multiViewManager = createMultiViewManager(vcsUiApp, viewConfig);
-      destroyButton = addMultiViewButton(vcsUiApp, multiViewManager, name);
-      mapAddedListener = vcsUiApp.maps.added.addEventListener(async (map) => {
-        if (map instanceof ObliqueMap) {
-          await map.initialize();
-        }
+    initialize(vcsUiApp: VcsUiApp): void {
+      app = vcsUiApp;
+      const action: VcsAction = reactive({
+        name: pluginName,
+        title: 'multiView.title',
+        icon: '$vcsMultiView',
+        active: false,
+        callback(): void {
+          if (this.active) {
+            vcsUiApp.panelManager.remove(pluginName);
+          } else {
+            vcsUiApp.panelManager.add(
+              {
+                id: pluginName,
+                component: MultiViewComponent,
+              },
+              pluginName,
+              PanelLocation.RIGHT,
+            );
+          }
+        },
       });
-      // needs to be initialized, otherwise it might not contain a collection.
-      await vcsUiApp.maps.getByType(ObliqueMap.className)[0]?.initialize();
-      if (state?.active) {
-        if (!multiViewManager.disabled && vcsUiApp.maps.activeMap) {
-          await multiViewManager.activate();
-        } else {
-          const disabledWatcher = watch(
-            multiViewManager.disabled,
-            async (disabled) => {
-              if (!disabled) {
-                disabledWatcher();
-                await activateWhenFirstMapLoaded(vcsUiApp, multiViewManager);
-              }
+      panelManagerListener.push(
+        app.panelManager.added.addEventListener((panel) => {
+          if (panel.id === pluginName) {
+            action.active = true;
+          }
+        }),
+      );
+      panelManagerListener.push(
+        app.panelManager.removed.addEventListener((panel) => {
+          if (panel.id === pluginName) {
+            action.active = false;
+          }
+        }),
+      );
+
+      vcsUiApp.toolboxManager.add(
+        {
+          id: 'multi-view',
+          type: ToolboxType.SINGLE,
+          action,
+        },
+        pluginName,
+      );
+    },
+    onVcsAppMounted(vcsUiApp: VcsUiApp): void {
+      if (pluginConfig.activeOnStartup) {
+        // only activate if we have an activeMap, otherwise wait.
+        if (vcsUiApp.maps.activeMap) {
+          vcsUiApp.panelManager.add(
+            {
+              id: pluginName,
+              component: MultiViewComponent,
             },
-            { immediate: true },
+            pluginName,
+            PanelLocation.RIGHT,
+          );
+        } else {
+          removeMapActiveListener = vcsUiApp.maps.mapActivated.addEventListener(
+            () => {
+              removeMapActiveListener?.();
+              vcsUiApp.panelManager.add(
+                {
+                  id: pluginName,
+                  component: MultiViewComponent,
+                },
+                pluginName,
+                PanelLocation.RIGHT,
+              );
+            },
           );
         }
       }
     },
-    getState(): PluginState {
-      const active = multiViewManager?.active;
-
-      return {
-        ...(active && { active }),
-      };
-    },
     i18n: {
       en: {
         multiView: {
-          title: 'Multiview tool',
+          config: {
+            title: 'MultiView configuration',
+            activeOnStartup: 'Activate MultiView on startup',
+            allowedSideMaps: 'Allowed side maps',
+            defaultAllowedSideMaps: 'All side maps',
+            startingSideMap: 'Side map displayed at startup',
+            defaultStartingSideMap: 'First side map',
+            obliqueCollectionName: 'Name of the oblique imagery collection',
+            defaultObliqueCollectionName: 'Derived from map configuration',
+          },
+          title: 'Show side map',
           north: 'north',
           east: 'east',
           south: 'south',
           west: 'west',
+          sync: 'Synchronize views',
+          switchMaps: 'Switch views',
+          obliqueMultiView: 'Oblique multiview',
         },
       },
       de: {
         multiView: {
-          title: 'Mehrfachansicht',
+          config: {
+            title: 'MultiView Konfiguration',
+            activeOnStartup: 'MultiView beim Start aktivieren',
+            allowedSideMaps: 'Erlaubte Nebenkarten',
+            defaultAllowedSideMaps: 'Alle Nebenkarten',
+            startingSideMap: 'Nebenkarte, die beim Start angezeigt wird',
+            defaultStartingSideMap: 'Erste Nebenkarte',
+            obliqueCollectionName: 'Name der Schrägluftbildebene',
+            defaultObliqueCollectionName: 'Abgeleitet aus Map Konfiguration',
+          },
+          title: 'Nebenkarte anzeigen',
           north: 'Norden',
           east: 'Osten',
           south: 'Süden',
           west: 'Westen',
+          sync: 'Ansichten synchronisieren',
+          switchMaps: 'Ansichten vertschauschen',
+          obliqueMultiView: 'Schrägluftbild Mehrfachansicht',
         },
       },
     },
+    getConfigEditors(): PluginConfigEditor<object>[] {
+      return [
+        {
+          component: MultiViewConfigEditor,
+          title: 'multiView.config.title',
+        },
+      ];
+    },
+    toJSON(): MultiViewPluginConfig {
+      const serial: MultiViewPluginConfig = {};
+      const defaultOptions = getDefaultOptions();
+      if (options.activeOnStartup !== defaultOptions.activeOnStartup) {
+        serial.activeOnStartup = options.activeOnStartup;
+      }
+      if (options.startingSideMap) {
+        serial.startingSideMap = options.startingSideMap;
+      }
+      if (options.allowedSideMaps && options.allowedSideMaps.length > 0) {
+        serial.allowedSideMaps = options.allowedSideMaps;
+      }
+      if (options.obliqueCollectionName) {
+        serial.obliqueCollectionName = options.obliqueCollectionName;
+      }
+      return serial;
+    },
     destroy(): void {
-      destroyButton();
-      multiViewManager.destroy();
-      mapAddedListener();
+      panelManagerListener.forEach((listener) => {
+        listener();
+      });
+      app?.toolboxManager?.removeOwner(pluginName);
+      removeMapActiveListener?.();
+      app?.panelManager.remove(pluginName);
+      app = undefined;
     },
   };
 }

@@ -1,3 +1,7 @@
 {
-  "name": "multi-view"
+  "name": "multi-view",
+  "activeOnStartup": true,
+  "startingSideMap": "OpenlayersMap",
+  "allowedSideMaps": [],
+  "obliqueCollectionName": ""
 }

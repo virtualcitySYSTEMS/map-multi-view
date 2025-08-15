@@ -1,0 +1,43 @@
+{
+  "name": "Pano",
+  "description": "Panorama config for hannover data",
+  "maps": [
+
+  ],
+  "plugins": [
+    {
+      "name": "@vcmap-show-case/panorama-inspector",
+      "entry": "plugins/@vcmap-show-case/panorama-inspector/index.js"
+    },
+    {
+      "name": "@vcmap/walk",
+      "entry": "plugins/@vcmap/walk/index.js"
+    }
+  ],
+  "layers": [
+    {
+      "type": "PanoramaDatasetLayer",
+      "name": "Hannover",
+      "activeOnStartup": true,
+      "url": "https://demo.virtualcitymap.de/panorama/data/v14/images.fgb",
+      "cameraOffset": -2.1,
+      "properties": {
+        "title": "Hannover Demo Daten"
+      }
+    }
+  ],
+  "contentTree": [
+    {
+      "name": "pano",
+      "type": "NodeContentTreeItem",
+      "title": "Panorama Data",
+      "initOpen": true,
+      "weight": 1
+    },
+    {
+      "name": "pano.dataset1",
+      "type": "LayerContentTreeItem",
+      "layerName": "Hannover"
+    }
+  ]
+}

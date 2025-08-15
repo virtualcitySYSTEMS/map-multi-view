@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { VcsUiApp, loadPlugin, VcsPlugin } from '@vcmap/ui';
+import type { VcsPlugin } from '@vcmap/ui';
+import { VcsUiApp, loadPlugin } from '@vcmap/ui';
 import plugin from '../src/index.js';
 import packageJSON from '../package.json';
 
@@ -44,9 +45,11 @@ describe('VcsPlugin Interface test', () => {
     it('should return the plugin name from the package.json', () => {
       expect(pluginInstance).to.have.property('name', packageJSON.name);
     });
+
     it('should return the plugin version from the package.json', () => {
       expect(pluginInstance).to.have.property('version', packageJSON.version);
     });
+
     it('should return the plugin mapVersion from the package.json', () => {
       expect(pluginInstance).to.have.property(
         'mapVersion',
@@ -61,6 +64,7 @@ describe('VcsPlugin Interface test', () => {
         expect(pluginInstance?.i18n).to.be.a('object').with.property('en');
       }
     });
+
     it('should use unscoped, camel-case plugin name as namespace for plugin specific i18n entries', () => {
       if (pluginInstance?.i18n) {
         expect(pluginInstance.i18n).to.be.a('object');
@@ -80,8 +84,20 @@ describe('VcsPlugin Interface test', () => {
     it('may implement initialize', () => {
       if (pluginInstance?.initialize) {
         expect(pluginInstance.initialize).to.be.a('function');
+        expect(pluginInstance.initialize(new VcsUiApp(), undefined)).to.not
+          .throw;
       }
     });
+
+    it('may implement onVcsAppMounted', () => {
+      if (pluginInstance?.onVcsAppMounted) {
+        expect(pluginInstance.onVcsAppMounted).to.be.a('function');
+        expect(
+          pluginInstance.onVcsAppMounted.bind(pluginInstance, new VcsUiApp()),
+        ).to.not.throw;
+      }
+    });
+
     it('should implement destroy', () => {
       if (pluginInstance?.destroy) {
         expect(pluginInstance.destroy).to.be.a('function');
@@ -95,6 +111,7 @@ describe('VcsPlugin Interface test', () => {
         expect(pluginInstance.getDefaultOptions()).to.be.a('object');
       }
     });
+
     it('may implement toJSON returning the plugin config', () => {
       if (pluginInstance?.toJSON) {
         expect(pluginInstance.toJSON()).to.be.a('object');
@@ -136,7 +153,9 @@ describe('VcsPlugin Interface test', () => {
     });
 
     it('should reincarnate the plugin correctly', async () => {
-      expect(() => app.plugins.remove(pluginInstance2!)).to.not.throw;
+      expect(() => {
+        app.plugins.remove(pluginInstance2!);
+      }).to.not.throw;
       app.plugins.remove(pluginInstance2!);
       await sleep(0);
       expect(app.plugins.getByKey(packageJSON.name)).not.to.have.property(

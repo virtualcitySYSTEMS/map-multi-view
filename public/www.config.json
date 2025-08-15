@@ -1,0 +1,429 @@
+{
+  "_id": "27f8d0f3-73de-4815-8473-1bb5f994d974",
+  "properties": {},
+  "name": "Panoramademo_LHH",
+  "createdAt": "2025-04-29T08:08:46.932Z",
+  "updatedAt": "2025-05-06T07:59:23.879Z",
+  "createdBy": "v6WEM2A92ozfZaAu5",
+  "updatedBy": "v6WEM2A92ozfZaAu5",
+  "projectId": "fhcsxx5sBWumdrfdK",
+  "startingObliqueCollectionName": "obliques",
+  "categories": [],
+  "clippingPolygons": [],
+  "contentTree": [
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Stadtmodell.Gebauede_LLH",
+      "layerName": "Gebauede_LLH"
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Stadtmodell.Kunst_LHH",
+      "layerName": "Kunst_LHH"
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Stadtmodell.Kugel Beaume",
+      "layerName": "Kugel Beaume"
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Stadtmodell.Gelände",
+      "layerName": "Gelände"
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Scan.Pointcloud_Data",
+      "layerName": "Pointcloud_Data"
+    },
+    {
+      "type": "NodeContentTreeItem",
+      "name": "Scan",
+      "title": "Befahrungsdaten",
+      "initOpen": true
+    },
+    {
+      "type": "NodeContentTreeItem",
+      "name": "Stadtmodell",
+      "title": "3D Stadtmodell",
+      "initOpen": true
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Basiskarten.Terrain_Image",
+      "layerName": "Terrain_Image"
+    },
+    {
+      "type": "LayerContentTreeItem",
+      "name": "Basiskarten.OpenStreetMapLayer",
+      "layerName": "OpenStreetMapLayer"
+    },
+    {
+      "type": "NodeContentTreeItem",
+      "name": "Basiskarten",
+      "title": "Basiskarten",
+      "initOpen": true
+    }
+  ],
+  "featureInfo": [
+    {
+      "type": "BalloonFeatureInfoView",
+      "name": "Building_info",
+      "attributeKeys": [
+        "Adresse",
+        "gml_id"
+      ]
+    },
+    {
+      "type": "BalloonFeatureInfoView",
+      "name": "Kugel Baum",
+      "attributeKeys": [
+        "baumhoehe"
+      ]
+    }
+  ],
+  "flights": [],
+  "hiddenObjects": [],
+  "i18n": [],
+  "layers": [
+    {
+      "type": "TerrainLayer",
+      "name": "Gelände",
+      "activeOnStartup": true,
+      "properties": {
+        "title": "DGM1 2021",
+        "attributions": {
+          "provider": "LH Hannover - Geoinformation, CC-BY-4.0",
+          "url": "",
+          "year": 2024
+        },
+        "infoUrl": "https://www.hannover.de/Leben-in-der-Region-Hannover/Verwaltungen-Kommunen/Die-Verwaltung-der-Landeshauptstadt-Hannover/Dezernate-und-Fachbereiche-der-LHH/Stadtentwicklung-und-Bauen/Fachbereich-Planen-und-Stadtentwicklung/Geoinformation/Open-GeoData/3D-Stadtmodell-und-Gel%C3%A4ndemodell/Digitales-Gel%C3%A4ndemodell-DGM1"
+      },
+      "url": "https://stadtmodell-prod1.hannover-stadt.de/HostingMap-extern/datasource-data/ce2c3d68-934b-47c7-8d33-452350b9df7e",
+      "zIndex": 0
+    },
+    {
+      "type": "OpenStreetMapLayer",
+      "name": "OpenStreetMapLayer",
+      "properties": {
+        "attributions": {
+          "provider": "OpenStreetMap contributors",
+          "url": "http://www.openstreetmap.org/",
+          "year": "2025"
+        },
+        "showInOverviewMap": true,
+        "title": "Open Street Map"
+      },
+      "activeOnStartup": true,
+      "zIndex": 0
+    },
+    {
+      "type": "TMSLayer",
+      "name": "Terrain_Image",
+      "properties": {
+        "attributions": {
+          "provider": "LH Hannover - Geoinformation",
+          "url": "",
+          "year": 2025
+        },
+        "title": "Orthofoto"
+      },
+      "activeOnStartup": true,
+      "url": "http://publisher/datasource-data/20e0b107-17e7-46d6-876f-07e3c54fd107/",
+      "extent": {
+        "coordinates": [
+          9.73135348054305,
+          52.36323195355867,
+          9.74471966259939,
+          52.37230382014246
+        ],
+        "projection": {
+          "type": "Projection",
+          "epsg": "EPSG:4326"
+        },
+        "type": "Extent"
+      },
+      "datasourceId": "20e0b107-17e7-46d6-876f-07e3c54fd107",
+      "minLevel": 14,
+      "format": "png",
+      "zIndex": 0
+    },
+    {
+      "type": "CesiumTilesetLayer",
+      "name": "Kunst_LHH",
+      "properties": {
+        "defaultViewpoint": "Kunst",
+        "attributions": {
+          "provider": "LH Hannover - Geoinformation",
+          "url": "",
+          "year": 2025
+        },
+        "title": "Kunstobjekte"
+      },
+      "activeOnStartup": true,
+      "url": "http://publisher/datasource-data/88403a53-e3c8-4eb9-b510-bc982ba03bc9/tileset.json",
+      "extent": {
+        "coordinates": [
+          9.733886703948508,
+          52.36633299737816,
+          9.739379879513546,
+          52.371826115647416
+        ],
+        "projection": {
+          "type": "Projection",
+          "epsg": "EPSG:4326"
+        },
+        "type": "Extent"
+      },
+      "datasourceId": "88403a53-e3c8-4eb9-b510-bc982ba03bc9",
+      "tilesetOptions": {
+        "useSRGBColorFactors": true
+      },
+      "zIndex": 0
+    },
+    {
+      "type": "CesiumTilesetLayer",
+      "name": "Gebauede_LLH",
+      "properties": {
+        "featureInfo": "Building_info",
+        "attributions": {
+          "provider": "LH Hannover - Geoinformation",
+          "url": "",
+          "year": 2025
+        },
+        "title": "Gebäude"
+      },
+      "activeOnStartup": true,
+      "url": "http://publisher/datasource-data/e1976b1d-6bb6-48a1-96ea-425384666138/tileset.json",
+      "extent": {
+        "coordinates": [
+          9.72839352838347,
+          52.36083982181312,
+          9.75036617334784,
+          52.37731929121245
+        ],
+        "projection": {
+          "type": "Projection",
+          "epsg": "EPSG:4326"
+        },
+        "type": "Extent"
+      },
+      "datasourceId": "e1976b1d-6bb6-48a1-96ea-425384666138",
+      "tilesetOptions": {
+        "useSRGBColorFactors": true
+      },
+      "zIndex": 0
+    },
+    {
+      "type": "CesiumTilesetLayer",
+      "name": "Kugel Beaume",
+      "properties": {
+        "featureInfo": "Kugel Baum",
+        "title": "Bäume"
+      },
+      "activeOnStartup": true,
+      "url": "http://publisher/datasource-data/c5cd63b7-29de-40fd-a04a-a29696fc965b/tileset.json",
+      "extent": {
+        "coordinates": [
+          9.72839352838347,
+          52.36083982181312,
+          9.744872997782803,
+          52.37731929121245
+        ],
+        "projection": {
+          "type": "Projection",
+          "epsg": "EPSG:4326"
+        },
+        "type": "Extent"
+      },
+      "datasourceId": "c5cd63b7-29de-40fd-a04a-a29696fc965b",
+      "tilesetOptions": {
+        "useSRGBColorFactors": true
+      },
+      "zIndex": 0
+    },
+    {
+      "type": "PointCloudLayer",
+      "name": "Pointcloud_Data",
+      "properties": {
+        "title": "Laserscan-Punktwolke",
+        "attributions": {
+          "provider": "LH Hannover (Testdaten zu Entwicklungszwecken)",
+          "url": "",
+          "year": 2025
+        }
+      },
+      "url": "http://publisher/datasource-data/777237e0-dc0a-4504-a844-afb64f9212d2/tileset.json",
+      "extent": {
+        "coordinates": [
+          9.732694422208846,
+          52.36247033672282,
+          9.752475282831645,
+          52.37744115375963
+        ],
+        "projection": {
+          "type": "Projection",
+          "epsg": "EPSG:4326"
+        },
+        "type": "Extent"
+      },
+      "datasourceId": "777237e0-dc0a-4504-a844-afb64f9212d2",
+      "pointSize": 2,
+      "zIndex": 0
+    }
+  ],
+  "maps": [
+    {
+      "type": "OpenlayersMap",
+      "name": "OpenlayersMap"
+    },
+    {
+      "type": "CesiumMap",
+      "name": "CesiumMap"
+    },
+    {
+      "type": "ObliqueMap",
+      "name": "Oblique Map"
+    },
+    {
+      "type": "PanoramaMap",
+      "name": "pano"
+    }
+  ],
+  "obliqueCollections": [
+    {
+      "type": "ObliqueCollection",
+      "name": "obliques",
+      "properties": {
+        "title": "Schrägluftbilder 2024",
+        "attributions": {
+          "provider": "LH Hannover - Geoinformation, CC-BY-4.0",
+          "url": "",
+          "year": 2025
+        }
+      },
+      "minZoom": 2,
+      "datasourceId": "d33d121d-8fba-4768-a3ed-27acf836919e",
+      "dataSets": [
+        {
+          "url": "https://stadtmodell-prod3.hannover-stadt.de/HostingMap-extern/datasource-data/5a9fc5b4-029a-4adb-bfa7-bd6c1c6b87a6/image.json",
+          "projection": {
+            "type": "Projection",
+            "epsg": "EPSG:25832",
+            "proj4": "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs"
+          },
+          "terrainProvider": {
+            "url": "https://stadtmodell-prod1.hannover-stadt.de/HostingMap-extern/datasource-data/ce2c3d68-934b-47c7-8d33-452350b9df7e"
+          }
+        }
+      ]
+    }
+  ],
+  "plugins": [
+    {
+      "name": "@vcmap/create-link",
+      "entry": "plugins/@vcmap/create-link/index.js"
+    },
+    {
+      "city": null,
+      "state": null,
+      "name": "@vcmap/search-nominatim",
+      "entry": "plugins/@vcmap/search-nominatim/index.js"
+    },
+    {
+      "name": "@vcmap/print",
+      "entry": "plugins/@vcmap/print/index.js"
+    },
+    {
+      "name": "@vcmap/shadow",
+      "entry": "plugins/@vcmap/shadow/index.js"
+    },
+    {
+      "name": "@vcmap/walk",
+      "entry": "plugins/@vcmap/walk/index.js"
+    },
+    {
+      "name": "@vcmap/search-coordinate",
+      "entry": "plugins/@vcmap/search-coordinate/index.js",
+      "searchProjections": [
+        {
+          "epsg": "EPSG:25832",
+          "proj4": "+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"
+        }
+      ]
+    },
+    {
+      "name": "@vcmap/draw",
+      "entry": "plugins/@vcmap/draw/index.js"
+    },
+    {
+      "name": "@vcmap/pointcloud-settings",
+      "entry": "plugins/@vcmap/pointcloud-settings/index.js"
+    }
+  ],
+  "startingMapName": "CesiumMap",
+  "styles": [
+    {
+      "type": "DeclarativeStyleItem",
+      "name": "intensity",
+      "declarativeStyle": {
+        "show": "true",
+        "color": "rgb(${Intensity}/257, ${Intensity}/257, ${Intensity}/257)",
+        "pointSize": "2"
+      }
+    }
+  ],
+  "uiConfig": [
+    {
+      "name": "appTitle",
+      "value": "DEMO Panorama"
+    },
+    {
+      "name": "headerTitle",
+      "value": "Demo Panorama"
+    }
+  ],
+  "vectorClusterGroups": [],
+  "viewpoints": [
+    {
+      "type": "Viewpoint",
+      "name": "Kunst",
+      "distance": 37.1721884629748,
+      "cameraPosition": [
+        9.736114904098732,
+        52.36848977267614,
+        60.20617058926811
+      ],
+      "groundPosition": [
+        9.736517443940901,
+        52.36827002205658,
+        54.54373608825821
+      ],
+      "heading": 131.72771325898321,
+      "pitch": -8.762135964144017,
+      "roll": 0.00001959494173351084,
+      "animate": true
+    },
+    {
+      "type": "Viewpoint",
+      "name": "Start Point",
+      "distance": 489.3150364707677,
+      "cameraPosition": [
+        9.743161660772566,
+        52.362903159886756,
+        323.7221569463293
+      ],
+      "groundPosition": [
+        9.73969022302837,
+        52.36589028700907,
+        53.504530065585534
+      ],
+      "heading": 324.5723838829471,
+      "pitch": -33.52240613812991,
+      "roll": 0.0009117948138611088,
+      "animate": false
+    }
+  ],
+  "startingViewpointName": "Start Point",
+  "description": "Demo"
+}
