@@ -1,6 +1,6 @@
 {
   "name": "@vcmap/multi-view",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Renders next to the map multiple alternative views for the same viewpoint.",
   "type": "module",
   "main": "src/index.js",
