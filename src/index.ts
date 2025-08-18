@@ -153,13 +153,13 @@ export default function plugin(
         multiView: {
           config: {
             title: 'MultiView Konfiguration',
-            activeOnStartup: 'MultiView beim Start aktivieren',
+            activeOnStartup: 'Nebenkarte beim Start aktivieren',
             allowedSideMaps: 'Erlaubte Nebenkarten',
-            defaultAllowedSideMaps: 'Alle Nebenkarten',
+            defaultAllowedSideMaps: 'Alle Karten',
             startingSideMap: 'Nebenkarte, die beim Start angezeigt wird',
-            defaultStartingSideMap: 'Erste Nebenkarte',
+            defaultStartingSideMap: 'Erste Karte',
             obliqueCollectionName: 'Name der Schrägluftbildebene',
-            defaultObliqueCollectionName: 'Abgeleitet aus Map Konfiguration',
+            defaultObliqueCollectionName: 'Abgeleitet aus Karten Konfiguration',
           },
           title: 'Nebenkarte anzeigen',
           north: 'Norden',

@@ -1,3 +1,7 @@
+# v3.0.1
+
+- small fixes to the i18n texts
+
 # v3.0.0
 
 - Updated @vcmap/core and @vcmap/ui to version 6.2

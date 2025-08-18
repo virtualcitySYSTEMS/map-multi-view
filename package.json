@@ -40,15 +40,13 @@
   "prettier": "@vcsuite/eslint-config/prettier.js",
   "peerDependencies": {
     "@vcmap-cesium/engine": "^11.0.3",
-    "@vcmap/ui": "^6.2.0-rc.4",
-    "@vcmap/core": "^6.2.0-rc.3",
+    "@vcmap/ui": "^6.2.0",
+    "@vcmap/core": "^6.2.0",
     "ol": "^10.5.0",
     "vue": "~3.4.38",
     "vuetify": "~3.7.14"
   },
   "overrides": {
-    "@vcmap/core": "^6.2.0-rc.3",
-    "@vcmap/ui": "^6.2.0-rc.4",
     "esbuild": "^0.25.0"
   },
   "devDependencies": {
