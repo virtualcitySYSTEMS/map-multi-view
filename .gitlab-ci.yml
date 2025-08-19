@@ -58,6 +58,12 @@ lint:
     reports:
       junit: test-report.xml
 
+type-check:
+  <<: *after_build_definition
+  stage: test
+  script:
+    - npm run type-check
+
 audit:
   <<: *after_build_definition
   stage: test

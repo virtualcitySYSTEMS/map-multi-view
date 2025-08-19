@@ -13,14 +13,14 @@ import MultiViewConfigEditor from './MultiViewConfigEditor.vue';
 import { getDefaultOptions } from './defaultOptions.js';
 
 export type MultiViewPluginConfig = {
-  activeOnStartup?: boolean; // default is false
+  activeOnStartup: boolean; // default is false
   startingSideMap?: string;
-  allowedSideMaps?: string[];
+  allowedSideMaps: string[];
   obliqueCollectionName?: string;
 };
 
 export type MultiViewPlugin = VcsPlugin<
-  MultiViewPluginConfig,
+  Partial<MultiViewPluginConfig>,
   Record<never, never>
 > & {
   readonly config: MultiViewPluginConfig;
@@ -131,13 +131,11 @@ export default function plugin(
         multiView: {
           config: {
             title: 'MultiView configuration',
-            activeOnStartup: 'Activate MultiView on startup',
+            activeOnStartup: 'Activate side map on startup',
             allowedSideMaps: 'Allowed side maps',
-            defaultAllowedSideMaps: 'All side maps',
             startingSideMap: 'Side map displayed at startup',
-            defaultStartingSideMap: 'First side map',
+            placeholder: 'Select',
             obliqueCollectionName: 'Name of the oblique imagery collection',
-            defaultObliqueCollectionName: 'Derived from map configuration',
           },
           title: 'Show side map',
           north: 'north',
@@ -155,11 +153,9 @@ export default function plugin(
             title: 'MultiView Konfiguration',
             activeOnStartup: 'Nebenkarte beim Start aktivieren',
             allowedSideMaps: 'Erlaubte Nebenkarten',
-            defaultAllowedSideMaps: 'Alle Karten',
             startingSideMap: 'Nebenkarte, die beim Start angezeigt wird',
-            defaultStartingSideMap: 'Erste Karte',
+            placeholder: 'Auswählen',
             obliqueCollectionName: 'Name der Schrägluftbildebene',
-            defaultObliqueCollectionName: 'Abgeleitet aus Karten Konfiguration',
           },
           title: 'Nebenkarte anzeigen',
           north: 'Norden',
@@ -180,8 +176,8 @@ export default function plugin(
         },
       ];
     },
-    toJSON(): MultiViewPluginConfig {
-      const serial: MultiViewPluginConfig = {};
+    toJSON(): Partial<MultiViewPluginConfig> {
+      const serial: Partial<MultiViewPluginConfig> = {};
       const defaultOptions = getDefaultOptions();
       if (options.activeOnStartup !== defaultOptions.activeOnStartup) {
         serial.activeOnStartup = options.activeOnStartup;
@@ -189,7 +185,15 @@ export default function plugin(
       if (options.startingSideMap) {
         serial.startingSideMap = options.startingSideMap;
       }
-      if (options.allowedSideMaps && options.allowedSideMaps.length > 0) {
+      if (
+        options.allowedSideMaps &&
+        options.allowedSideMaps.length > 0 &&
+        (options.allowedSideMaps.length !==
+          defaultOptions.allowedSideMaps.length ||
+          !options.allowedSideMaps.every((map) =>
+            defaultOptions.allowedSideMaps.includes(map),
+          ))
+      ) {
         serial.allowedSideMaps = options.allowedSideMaps;
       }
       if (options.obliqueCollectionName) {

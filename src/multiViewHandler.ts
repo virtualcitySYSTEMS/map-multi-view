@@ -8,6 +8,7 @@ import {
   PanoramaFeatureHighlight,
   type ObliqueCollection,
   type Viewpoint,
+  PanoramaDatasetLayer,
 } from '@vcmap/core';
 import { type VcsUiApp } from '@vcmap/ui';
 import { type Ref, ref, shallowRef } from 'vue';
@@ -306,14 +307,11 @@ export function createMultiViewHandler(
    * are also available in the multi-view system.
    */
   async function initializeMultiViewMaps(): Promise<void> {
-    if (config.allowedSideMaps.length > 0) {
+    if (config.allowedSideMaps && config.allowedSideMaps.length > 0) {
       // take from config
       availableSideMapClasses.value = [...config.allowedSideMaps];
-    } else {
-      // otherwise we make all configured maps available
-      availableSideMapClasses.value = [...app.maps].map((map) => map.className);
-      availableSideMapClasses.value.push(ObliqueMultiView.className);
     }
+
     // check if an oblique collection is available for a configured ObliqueMap and remove if not.
     if (app.obliqueCollections.size === 0) {
       availableSideMapClasses.value = availableSideMapClasses.value.filter(
@@ -324,11 +322,26 @@ export function createMultiViewHandler(
       );
     }
 
-    availableMainMapClasses.value = [...app.maps].map((map) => map.className);
+    // check if we have a PanoramaDataset, if not remove PanoramaMap from available maps
+    if (
+      ![...app.layers].some((layer) => layer instanceof PanoramaDatasetLayer)
+    ) {
+      availableSideMapClasses.value = availableSideMapClasses.value.filter(
+        (mapClassName) => PanoramaMap.className !== mapClassName,
+      );
+    }
+
     activeMainMapClassName.value = app.maps.activeMap?.className ?? null;
     if (availableSideMapClasses.value.length > 0) {
-      if (availableSideMapClasses.value.includes(config.startingSideMap)) {
+      if (
+        config.startingSideMap &&
+        availableSideMapClasses.value.includes(config.startingSideMap)
+      ) {
         await setActiveSideMap(config.startingSideMap);
+      } else if (
+        availableSideMapClasses.value.includes(ObliqueMultiView.className)
+      ) {
+        await setActiveSideMap(ObliqueMultiView.className);
       } else {
         await setActiveSideMap(availableSideMapClasses.value[0]);
       }

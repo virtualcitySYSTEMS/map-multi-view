@@ -11,7 +11,6 @@
           <VcsCheckbox
             id="configActiveOnStartup"
             v-model="localConfig.activeOnStartup"
-            label="multiView.config.activeOnStartup"
             :true-value="true"
             :false-value="false"
           />
@@ -27,9 +26,7 @@
           <VcsSelect
             id="configAllowedSideMaps"
             v-model="localConfig.allowedSideMaps"
-            clearable
             multiple
-            :placeholder="$t('multiView.config.defaultAllowedSideMaps')"
             :items="availableMapClasses"
           />
         </v-col>
@@ -45,7 +42,7 @@
             id="configStartingSideMap"
             v-model="localConfig.startingSideMap"
             clearable
-            :placeholder="$t('multiView.config.defaultStartingSideMap')"
+            :placeholder="$t('multiView.config.placeholder')"
             :items="availableSideMapClasses"
           />
         </v-col>
@@ -61,7 +58,7 @@
             id="configObliqueCollectionName"
             v-model="localConfig.obliqueCollectionName"
             clearable
-            :placeholder="$t('multiView.config.defaultObliqueCollectionName')"
+            :placeholder="$t('multiView.config.placeholder')"
             :items="availableObliqueCollections"
           />
         </v-col>
@@ -81,14 +78,7 @@
     VcsSelect,
     type VcsUiApp,
   } from '@vcmap/ui';
-  import {
-    CesiumMap,
-    ObliqueMap,
-    OpenlayersMap,
-    PanoramaMap,
-  } from '@vcmap/core';
   import { type MultiViewPluginConfig } from './index.js';
-  import ObliqueMultiView from './obliqueMultiView';
   import { getDefaultOptions } from './defaultOptions';
 
   const props = defineProps({
@@ -101,20 +91,15 @@
       required: true,
     },
   });
+  const defaultOptions = getDefaultOptions();
 
   const config: MultiViewPluginConfig = props.getConfig();
   const localConfig = ref({
-    ...getDefaultOptions(),
+    ...defaultOptions,
     ...structuredClone(config),
   });
 
-  const availableMapClasses = [
-    ObliqueMap.className,
-    CesiumMap.className,
-    OpenlayersMap.className,
-    PanoramaMap.className,
-    ObliqueMultiView.className,
-  ];
+  const availableMapClasses = defaultOptions.allowedSideMaps;
 
   const availableSideMapClasses = computed(() => {
     if (
@@ -127,7 +112,12 @@
   });
   const app = inject<VcsUiApp>('vcsApp')!;
   const availableObliqueCollections = [...app.obliqueCollections].map(
-    (collection) => collection.name,
+    (collection) => {
+      return {
+        value: collection.name,
+        title: collection?.properties?.title || collection.name,
+      };
+    },
   );
 
   function apply(): void {

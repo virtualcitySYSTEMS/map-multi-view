@@ -1,3 +1,7 @@
+# v3.0.2
+
+- changed the default behaviour on initialize. Default is now all possible SideMaps.
+
 # v3.0.1
 
 - small fixes to the i18n texts
