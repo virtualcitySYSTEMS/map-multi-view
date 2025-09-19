@@ -12,6 +12,10 @@ The multi-view plugin supports the following maps which can be shown and changed
 - Panorama
 - Oblique multi-view (north/south/east/west)
 
+### MapNames
+
+The SideMaps always have the following name: `${className}-multi-view`, which can be used in layer.mapNames to show a layer just in the sideMap.
+
 ### Configuration Options
 
 - `activeOnStartup` can be used to set the multi-view plugin active on startup. If not set, the plugin is inactive on startup.

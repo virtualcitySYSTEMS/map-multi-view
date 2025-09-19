@@ -1,3 +1,7 @@
+# v3.0.3
+
+- changed the name of the sideMaps, they now are called `${className}-multi-view` This can be used together with layer.mapNames, to show a layer just in the sideMap.
+
 # v3.0.2
 
 - changed the default behaviour on initialize. Default is now all possible SideMaps.

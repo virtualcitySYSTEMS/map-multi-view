@@ -169,7 +169,7 @@ export function createMultiViewHandler(
     const map = app.maps.getByType(mapClassName)[0];
     if (map) {
       const options = map.toJSON();
-      delete options.name;
+      options.name = `${mapClassName}-multi-view`;
       return options;
     }
     return {};
