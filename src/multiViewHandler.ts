@@ -21,11 +21,9 @@ import { type MultiViewPluginConfig } from './index.js';
 export type AllowedMapType = VcsMap | ObliqueMultiView;
 
 export type MultiViewHandler = {
-  availableMainMapClasses: Ref<string[]>;
   availableSideMapClasses: Ref<string[]>;
   activeSideMap: Ref<AllowedMapType | null>;
   currentMainMapViewpoint: Ref<Viewpoint | null>;
-  activeMainMapClassName: Ref<string | null>;
   isSync: Ref<boolean>;
   setActiveSideMap(newMapClass: string | null): Promise<void>;
   initializeMultiViewMaps(): Promise<void>;
@@ -66,7 +64,7 @@ function setupMultiViewPanoramaInteraction(
       mainMapMultiviewPanoramaInteraction,
     );
   const mainMapPanoramaImageSelectionOriginalState =
-    app.overviewMap.panoramaImageSelection.active;
+    app.maps.panoramaImageSelection.active;
   app.maps.panoramaImageSelection.setActive(false);
 
   const sideMapMultiviewPanoramaInteraction = new MultiViewPanoramaInteraction(
@@ -99,15 +97,49 @@ function setupMultiViewPanoramaInteraction(
   };
 }
 
+export function setupAvailableMainMaps(app: VcsUiApp): {
+  availableMainMapClasses: Ref<string[]>;
+  activeMainMapClassName: Ref<string | undefined>;
+  destroy: () => void;
+} {
+  const availableMainMapClasses: Ref<string[]> = ref([]);
+  const activeMainMapClassName: Ref<string | undefined> = ref(
+    app.maps.activeMap?.className,
+  );
+  const updateAvailableMainMaps = (): void => {
+    const mapClasses = new Set<string>();
+    [...app.maps].forEach((map) => {
+      mapClasses.add(map.className);
+    });
+    availableMainMapClasses.value = [...mapClasses];
+  };
+  updateAvailableMainMaps();
+  const listeners = [
+    app.maps.mapActivated.addEventListener((map) => {
+      activeMainMapClassName.value = map?.className;
+    }),
+    app.maps.added.addEventListener(updateAvailableMainMaps),
+    app.maps.removed.addEventListener(updateAvailableMainMaps),
+  ];
+
+  return {
+    availableMainMapClasses,
+    activeMainMapClassName,
+    destroy(): void {
+      listeners.forEach((cb) => {
+        cb();
+      });
+    },
+  };
+}
+
 export function createMultiViewHandler(
   app: VcsUiApp,
   config: MultiViewPluginConfig,
 ): MultiViewHandler {
-  const availableMainMapClasses: Ref<string[]> = ref([]);
   const availableSideMapClasses: Ref<string[]> = ref([]);
 
   const activeSideMap: Ref<AllowedMapType | null> = shallowRef(null);
-  const activeMainMapClassName: Ref<string | null> = ref(null);
   const currentMainMapViewpoint: Ref<Viewpoint | null> = shallowRef(null);
 
   const isSync = ref(true);
@@ -331,7 +363,6 @@ export function createMultiViewHandler(
       );
     }
 
-    activeMainMapClassName.value = app.maps.activeMap?.className ?? null;
     if (availableSideMapClasses.value.length > 0) {
       if (
         config.startingSideMap &&
@@ -351,7 +382,6 @@ export function createMultiViewHandler(
   const mapsListener = [
     app.maps.mapActivated.addEventListener((map) => {
       mainViewChangedEvent.setActiveMap(map);
-      activeMainMapClassName.value = map.className;
     }),
     app.maps.added.addEventListener(() => {
       app.panelManager.remove(pluginName);
@@ -363,10 +393,8 @@ export function createMultiViewHandler(
 
   return {
     isSync,
-    availableMainMapClasses,
     availableSideMapClasses,
     activeSideMap,
-    activeMainMapClassName,
     currentMainMapViewpoint,
     setActiveSideMap,
     initializeMultiViewMaps,

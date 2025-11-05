@@ -12,6 +12,7 @@
   import {
     createMultiViewHandler,
     type MultiViewHandler,
+    setupAvailableMainMaps,
   } from './multiViewHandler.js';
   import ObliqueMultiView from './obliqueMultiView.js';
   import type { MultiViewPlugin } from './index.js';
@@ -32,20 +33,25 @@
     }
     return `navbar.maps.${className}`;
   }
-  const switchPossible = computed(() => {
-    // only show the switch Button if sideMap and mainMap are compatible
-    if (
-      multiViewHandler.availableMainMapClasses.value.includes(
+  const {
+    availableMainMapClasses,
+    activeMainMapClassName,
+    destroy: mapTypesListener,
+  } = setupAvailableMainMaps(app);
+  const switchPossible = computed(
+    () =>
+      availableMainMapClasses.value.includes(
         multiViewHandler.activeSideMap.value?.className ?? '',
       ) &&
       multiViewHandler.availableSideMapClasses.value.includes(
-        multiViewHandler.activeMainMapClassName.value ?? '',
-      )
-    ) {
-      return true;
-    }
-    return false;
-  });
+        activeMainMapClassName.value ?? '',
+      ),
+  );
+  const switchDisabled = computed(
+    () =>
+      activeMainMapClassName.value ===
+      multiViewHandler.activeSideMap?.value?.className,
+  );
 
   const activeSideMapClass = computed({
     get() {
@@ -73,7 +79,7 @@
         ObliqueMap.className,
         CesiumMap.className,
         PanoramaMap.className,
-      ].includes(multiViewHandler.activeMainMapClassName.value ?? '')
+      ].includes(activeMainMapClassName.value ?? '')
     ) {
       app.maps.activeMap
         ?.getViewpoint()
@@ -92,16 +98,6 @@
         });
     }
   }
-
-  onMounted(() => {
-    multiViewHandler.initializeMultiViewMaps().catch((error: unknown) => {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to initialize multi view maps: ${String(error)}`);
-    });
-  });
-  onUnmounted(() => {
-    multiViewHandler.destroy();
-  });
 
   function getVariant(
     heading: number | undefined,
@@ -167,6 +163,18 @@
       gridArea: 'grid-area-4',
     },
   ];
+
+  onMounted(() => {
+    multiViewHandler.initializeMultiViewMaps().catch((error: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to initialize multi view maps: ${String(error)}`);
+    });
+  });
+
+  onUnmounted(() => {
+    multiViewHandler.destroy();
+    mapTypesListener();
+  });
 </script>
 
 <template>
@@ -175,6 +183,7 @@
     <div class="d-flex justify-start pa-1 ga-1">
       <OrientationToolsButton
         v-if="switchPossible"
+        :disabled="switchDisabled"
         icon="mdi-swap-horizontal"
         :tooltip="$st('multiView.switchMaps')"
         @click="multiViewHandler.switchMaps"

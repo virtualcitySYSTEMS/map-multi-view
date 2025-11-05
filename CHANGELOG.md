@@ -1,3 +1,7 @@
+# v3.0.4
+
+- fixes a bug where the switch button would not be shown.
+
 # v3.0.3
 
 - changed the name of the sideMaps, they now are called `${className}-multi-view` This can be used together with layer.mapNames, to show a layer just in the sideMap.
