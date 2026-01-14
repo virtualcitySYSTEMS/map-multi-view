@@ -150,6 +150,40 @@ export function createMultiViewHandler(
   const sideMapPanoramaHighlight = new PanoramaFeatureHighlight();
   sideMapEventHandler.addPersistentInteraction(sideMapPanoramaHighlight);
 
+  const sideMapCache = new Map<string, AllowedMapType>();
+
+  let removeObliqueCollectionChangedListener: (() => void) | null = null;
+
+  async function updateObliqueSideMapCollections(
+    collection: ObliqueCollection,
+  ): Promise<void> {
+    const obliqueSideMaps = [...sideMapCache.values()].filter(
+      (map): map is ObliqueMap | ObliqueMultiView =>
+        map instanceof ObliqueMultiView,
+    );
+    await Promise.all(
+      obliqueSideMaps.map((map) => map.setCollection(collection)),
+    );
+  }
+
+  function updateObliqueCollectionChangedListener(map: VcsMap | null): void {
+    removeObliqueCollectionChangedListener?.();
+    removeObliqueCollectionChangedListener = null;
+
+    if (map instanceof ObliqueMap) {
+      const removeListener = map.collectionChanged.addEventListener(
+        (collection) => {
+          updateObliqueSideMapCollections(collection).catch(() => {});
+        },
+      );
+      removeObliqueCollectionChangedListener = removeListener;
+
+      if (map.collection) {
+        updateObliqueSideMapCollections(map.collection).catch(() => {});
+      }
+    }
+  }
+
   /**
    * Synchronizes the viewpoint from the active map to the multi-view map instance.
    *
@@ -240,12 +274,39 @@ export function createMultiViewHandler(
     return collection ?? [...app.obliqueCollections][0];
   }
 
-  const sideMapCache = new Map<string, AllowedMapType>();
+  async function syncCachedMapWithCurrentCollection(
+    cachedMap: AllowedMapType,
+  ): Promise<void> {
+    // Only sync if main map is oblique and no explicit collection was configured
+    if (
+      !(app.maps.activeMap instanceof ObliqueMap) ||
+      config.obliqueCollectionName
+    ) {
+      return;
+    }
+
+    const mainMapCollection = app.maps.activeMap.collection;
+    if (!mainMapCollection) {
+      return;
+    }
+
+    if (
+      cachedMap instanceof ObliqueMap &&
+      cachedMap.collection !== mainMapCollection
+    ) {
+      await cachedMap.setCollection(mainMapCollection);
+    } else if (cachedMap instanceof ObliqueMultiView) {
+      await cachedMap.setCollection(mainMapCollection);
+    }
+  }
+
   async function getSideMap(
     newMapClass: string,
   ): Promise<AllowedMapType | null> {
     if (sideMapCache.has(newMapClass)) {
-      return sideMapCache.get(newMapClass)!;
+      const cachedMap = sideMapCache.get(newMapClass)!;
+      await syncCachedMapWithCurrentCollection(cachedMap);
+      return cachedMap;
     }
     let multiMapInstance = null;
     if (newMapClass === OpenlayersMap.className) {
@@ -275,6 +336,7 @@ export function createMultiViewHandler(
       });
       multiMapInstance.setTarget('multi-view-map-container');
       multiMapInstance.layerCollection = app.maps.layerCollection;
+      sideMapCache.set(newMapClass, multiMapInstance);
     }
     return multiMapInstance;
   }
@@ -324,6 +386,7 @@ export function createMultiViewHandler(
    */
   const mainViewChangedEvent = new MainViewChangedEvent();
   mainViewChangedEvent.setActiveMap(app.maps.activeMap);
+  updateObliqueCollectionChangedListener(app.maps.activeMap);
   mainViewChangedEvent.addEventListener(async () => {
     if (activeSideMap.value && isSync.value) {
       await changeView();
@@ -382,6 +445,7 @@ export function createMultiViewHandler(
   const mapsListener = [
     app.maps.mapActivated.addEventListener((map) => {
       mainViewChangedEvent.setActiveMap(map);
+      updateObliqueCollectionChangedListener(map);
     }),
     app.maps.added.addEventListener(() => {
       app.panelManager.remove(pluginName);
@@ -416,6 +480,7 @@ export function createMultiViewHandler(
       sideMapEventHandler.destroy();
       // Event for view changes
       mainViewChangedEvent.destroy();
+      removeObliqueCollectionChangedListener?.();
     },
   };
 }

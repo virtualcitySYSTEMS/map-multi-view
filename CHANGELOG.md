@@ -1,3 +1,7 @@
+# v3.0.5
+
+- fixes a bug where oblique multiview images were not updated when the active map's collection changed and `obliqueCollectionName` not set
+
 # v3.0.4
 
 - fixes a bug where the switch button would not be shown.
