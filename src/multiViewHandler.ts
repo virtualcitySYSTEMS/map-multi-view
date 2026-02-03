@@ -143,7 +143,7 @@ export function createMultiViewHandler(
   const currentMainMapViewpoint: Ref<Viewpoint | null> = shallowRef(null);
 
   const isSync = ref(true);
-  let viewIsChanging = false;
+  let sideMapIsUpdating = false;
 
   const sideMapEventHandler = new EventHandler();
 
@@ -196,14 +196,22 @@ export function createMultiViewHandler(
     const activeMainMap = app.maps.activeMap;
     if (
       !activeMainMap ||
-      viewIsChanging ||
+      sideMapIsUpdating ||
       (activeMainMap instanceof PanoramaMap &&
         !activeMainMap.currentPanoramaImage)
     ) {
       return;
     }
 
-    const viewpoint = activeMainMap.getViewpointSync();
+    let viewpoint;
+    try {
+      viewpoint = await activeMainMap.getViewpoint();
+      if (!viewpoint) {
+        throw new Error();
+      }
+    } catch (e) {
+      viewpoint = activeMainMap.getViewpointSync();
+    }
 
     if (viewpoint?.isValid() && activeSideMap) {
       if (
@@ -213,11 +221,14 @@ export function createMultiViewHandler(
         // remove ground position for panorama maps so we synchronize the camera position
         viewpoint.groundPosition = null;
       }
-      viewIsChanging = true;
-      await activeSideMap.value?.gotoViewpoint(viewpoint);
-      currentMainMapViewpoint.value = viewpoint;
+      sideMapIsUpdating = true;
+      try {
+        await activeSideMap.value?.gotoViewpoint(viewpoint);
+        currentMainMapViewpoint.value = viewpoint;
+      } finally {
+        sideMapIsUpdating = false;
+      }
     }
-    viewIsChanging = false;
   }
 
   async function toggleSync(): Promise<void> {
@@ -369,15 +380,18 @@ export function createMultiViewHandler(
     const newMainMapName = app.maps.getByType(
       activeSideMap.value?.className ?? '',
     )[0]?.name;
-    viewIsChanging = true;
-    const newSideMapClassName = app.maps.activeMap?.className;
-    if (newMainMapName) {
-      await app.maps.setActiveMap(newMainMapName);
+    sideMapIsUpdating = true;
+    try {
+      const newSideMapClassName = app.maps.activeMap?.className;
+      if (newMainMapName) {
+        await app.maps.setActiveMap(newMainMapName);
+      }
+      if (newSideMapClassName) {
+        await setActiveSideMap(newSideMapClassName);
+      }
+    } finally {
+      sideMapIsUpdating = false;
     }
-    if (newSideMapClassName) {
-      await setActiveSideMap(newSideMapClassName);
-    }
-    viewIsChanging = false;
     await changeView();
   }
 

@@ -1,3 +1,7 @@
+# v3.0.6
+
+- fixes a bug where oblique side map would not be updated when jumping to a Search result in 2D
+
 # v3.0.5
 
 - fixes a bug where oblique multiview images were not updated when the active map's collection changed and `obliqueCollectionName` not set
@@ -21,7 +25,7 @@
 # v3.0.0
 
 - Updated @vcmap/core and @vcmap/ui to version 6.2
-- Added new SideMaps (3d/2D/Oblique/PanoramaMap)
+- Added new SideMaps (3D/2D/Oblique/PanoramaMap)
 - Added new Button do enable/disable View Sync
 - Added new Button to switch Main Map and Sidemap
 - Added configuration options
