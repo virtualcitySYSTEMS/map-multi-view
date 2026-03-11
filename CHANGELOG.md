@@ -1,3 +1,7 @@
+# v3.0.7
+
+- fixes sync issue between 2D main map and side maps during programmatic viewpoint changes
+
 # v3.0.6
 
 - fixes a bug where oblique side map would not be updated when jumping to a Search result in 2D

@@ -144,6 +144,7 @@ export function createMultiViewHandler(
 
   const isSync = ref(true);
   let sideMapIsUpdating = false;
+  let pendingMainViewUpdate = false;
 
   const sideMapEventHandler = new EventHandler();
 
@@ -196,23 +197,18 @@ export function createMultiViewHandler(
     const activeMainMap = app.maps.activeMap;
     if (
       !activeMainMap ||
-      sideMapIsUpdating ||
       (activeMainMap instanceof PanoramaMap &&
         !activeMainMap.currentPanoramaImage)
     ) {
       return;
     }
 
-    let viewpoint;
-    try {
-      viewpoint = await activeMainMap.getViewpoint();
-      if (!viewpoint) {
-        throw new Error();
-      }
-    } catch (e) {
-      viewpoint = activeMainMap.getViewpointSync();
+    if (sideMapIsUpdating) {
+      pendingMainViewUpdate = true;
+      return;
     }
 
+    const viewpoint = activeMainMap.getViewpointSync();
     if (viewpoint?.isValid() && activeSideMap) {
       if (
         activeSideMap.value instanceof PanoramaMap &&
@@ -227,6 +223,10 @@ export function createMultiViewHandler(
         currentMainMapViewpoint.value = viewpoint;
       } finally {
         sideMapIsUpdating = false;
+        if (pendingMainViewUpdate) {
+          pendingMainViewUpdate = false;
+          await changeView();
+        }
       }
     }
   }
