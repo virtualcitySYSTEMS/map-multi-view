@@ -24,7 +24,7 @@
   }
   const multiViewHandler: MultiViewHandler = createMultiViewHandler(
     app,
-    plugin.config,
+    plugin,
   );
 
   function getI18nMapStrings(className: string): string {

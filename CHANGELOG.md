@@ -1,5 +1,6 @@
 # v3.0.7
 
+- adds support for Create Link, allowing to share a link reopening the same multiview side map
 - fixes sync issue between 2D main map and side maps during programmatic viewpoint changes
 
 # v3.0.6

@@ -11,6 +11,7 @@ import { mapVersion, name as pluginName, version } from '../package.json';
 import MultiViewComponent from './MultiViewComponent.vue';
 import MultiViewConfigEditor from './MultiViewConfigEditor.vue';
 import { getDefaultOptions } from './defaultOptions.js';
+import { activateWhenFirstMapLoaded } from './activationHelper.js';
 
 export type MultiViewPluginConfig = {
   activeOnStartup: boolean; // default is false
@@ -19,11 +20,19 @@ export type MultiViewPluginConfig = {
   obliqueCollectionName?: string;
 };
 
+type MultiViewPluginState = {
+  /** The active `sideMap` or undefined if none */
+  sm?: string;
+  /** The `width` of the side map panel */
+  w: string;
+};
+
 export type MultiViewPlugin = VcsPlugin<
   Partial<MultiViewPluginConfig>,
-  Record<never, never>
+  MultiViewPluginState
 > & {
   readonly config: MultiViewPluginConfig;
+  readonly state: MultiViewPluginState;
 };
 
 export default function plugin(
@@ -33,10 +42,36 @@ export default function plugin(
     ...getDefaultOptions(),
     ...options,
   };
+  const state = reactive<MultiViewPluginState>({
+    sm: undefined,
+    w: '25%',
+  });
   let app: VcsUiApp | undefined;
   const panelManagerListener: (() => void)[] = [];
-
   let removeMapActiveListener: (() => void) | undefined;
+
+  const action: VcsAction = reactive({
+    name: pluginName,
+    title: 'multiView.title',
+    icon: '$vcsMultiView',
+    active: false,
+    disabled: true,
+    callback(): void {
+      if (this.active) {
+        app!.panelManager.remove(pluginName);
+      } else {
+        app!.panelManager.add(
+          {
+            id: pluginName,
+            component: MultiViewComponent,
+            position: { width: state.w },
+          },
+          pluginName,
+          PanelLocation.RIGHT,
+        );
+      }
+    },
+  });
 
   return {
     get name(): string {
@@ -51,28 +86,13 @@ export default function plugin(
     get config(): MultiViewPluginConfig {
       return { ...getDefaultOptions(), ...pluginConfig };
     },
-    initialize(vcsUiApp: VcsUiApp): void {
+    state,
+    initialize(vcsUiApp: VcsUiApp, pluginState?: MultiViewPluginState): void {
       app = vcsUiApp;
-      const action: VcsAction = reactive({
-        name: pluginName,
-        title: 'multiView.title',
-        icon: '$vcsMultiView',
-        active: false,
-        callback(): void {
-          if (this.active) {
-            vcsUiApp.panelManager.remove(pluginName);
-          } else {
-            vcsUiApp.panelManager.add(
-              {
-                id: pluginName,
-                component: MultiViewComponent,
-              },
-              pluginName,
-              PanelLocation.RIGHT,
-            );
-          }
-        },
-      });
+      action.disabled = false;
+      state.sm = pluginState?.sm;
+      state.w = pluginState?.w ?? '25%';
+
       panelManagerListener.push(
         app.panelManager.added.addEventListener((panel) => {
           if (panel.id === pluginName) {
@@ -84,8 +104,18 @@ export default function plugin(
         app.panelManager.removed.addEventListener((panel) => {
           if (panel.id === pluginName) {
             action.active = false;
+            state.sm = undefined;
           }
         }),
+      );
+      panelManagerListener.push(
+        app.panelManager.positionChanged.addEventListener(
+          ({ panelId, panelPosition }) => {
+            if (panelId === pluginName) {
+              state.w = panelPosition.width;
+            }
+          },
+        ),
       );
 
       vcsUiApp.toolboxManager.add(
@@ -98,33 +128,15 @@ export default function plugin(
       );
     },
     onVcsAppMounted(vcsUiApp: VcsUiApp): void {
-      if (pluginConfig.activeOnStartup) {
-        // only activate if we have an activeMap, otherwise wait.
-        if (vcsUiApp.maps.activeMap) {
-          vcsUiApp.panelManager.add(
-            {
-              id: pluginName,
-              component: MultiViewComponent,
-            },
-            pluginName,
-            PanelLocation.RIGHT,
-          );
-        } else {
-          removeMapActiveListener = vcsUiApp.maps.mapActivated.addEventListener(
-            () => {
-              removeMapActiveListener?.();
-              vcsUiApp.panelManager.add(
-                {
-                  id: pluginName,
-                  component: MultiViewComponent,
-                },
-                pluginName,
-                PanelLocation.RIGHT,
-              );
-            },
-          );
+      if (!!state.sm || pluginConfig.activeOnStartup) {
+        if (!!state.sm && pluginConfig.allowedSideMaps.includes(state.sm)) {
+          pluginConfig.startingSideMap = state.sm;
         }
+        removeMapActiveListener = activateWhenFirstMapLoaded(vcsUiApp, action);
       }
+    },
+    getState(): MultiViewPluginState {
+      return state;
     },
     i18n: {
       en: {

@@ -11,12 +11,12 @@ import {
   PanoramaDatasetLayer,
 } from '@vcmap/core';
 import { type VcsUiApp } from '@vcmap/ui';
-import { type Ref, ref, shallowRef } from 'vue';
+import { type Ref, ref, shallowRef, watch } from 'vue';
 import MainViewChangedEvent from './mainViewChangedEvent.js';
 import MultiViewPanoramaInteraction from './multiViewPanoramaInteraction.js';
 import ObliqueMultiView from './obliqueMultiView.js';
 import { name as pluginName } from '../package.json';
-import { type MultiViewPluginConfig } from './index.js';
+import type { MultiViewPlugin } from './index.js';
 
 export type AllowedMapType = VcsMap | ObliqueMultiView;
 
@@ -135,11 +135,16 @@ export function setupAvailableMainMaps(app: VcsUiApp): {
 
 export function createMultiViewHandler(
   app: VcsUiApp,
-  config: MultiViewPluginConfig,
+  plugin: MultiViewPlugin,
 ): MultiViewHandler {
+  const { config, state } = plugin;
   const availableSideMapClasses: Ref<string[]> = ref([]);
 
   const activeSideMap: Ref<AllowedMapType | null> = shallowRef(null);
+  const destroySideMapListener = watch(activeSideMap, (newMap) => {
+    state.sm = newMap?.className;
+  });
+
   const currentMainMapViewpoint: Ref<Viewpoint | null> = shallowRef(null);
 
   const isSync = ref(true);
@@ -489,7 +494,7 @@ export function createMultiViewHandler(
       mapsListener.forEach((listener) => {
         listener();
       });
-
+      destroySideMapListener();
       destroyMultiviewPanoramaInteraction();
       sideMapEventHandler.destroy();
       // Event for view changes
