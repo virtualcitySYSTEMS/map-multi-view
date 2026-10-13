@@ -119,11 +119,7 @@ export default function plugin(
       );
 
       vcsUiApp.toolboxManager.add(
-        {
-          id: 'multi-view',
-          type: ToolboxType.SINGLE,
-          action,
-        },
+        { id: 'multi-view', type: ToolboxType.SINGLE, action },
         pluginName,
       );
     },

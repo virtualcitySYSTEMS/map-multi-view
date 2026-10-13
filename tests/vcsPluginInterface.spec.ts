@@ -10,6 +10,7 @@ function sleep(ms = 0): Promise<void> {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-generated-empty-object-type
 type TestPluginInstance = VcsPlugin<Record<never, never>, Record<never, never>>;
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

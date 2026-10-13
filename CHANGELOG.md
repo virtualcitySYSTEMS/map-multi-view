@@ -1,3 +1,8 @@
+# v4.0.0
+
+- updates @vcmap/core and @vcmap/ui to version 6.3.13
+- includes active side map attributions using the new @vcmap/ui attribution handling
+
 # v3.0.7
 
 - adds support for Create Link, allowing to share a link reopening the same multiview side map
